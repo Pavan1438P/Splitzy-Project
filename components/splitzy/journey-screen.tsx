@@ -53,7 +53,8 @@ export function JourneyScreen({
 
   const getShareBaseUrl = () => {
     if (typeof window === 'undefined') return ''
-    return `${window.location.origin}${window.location.pathname}`
+    // Use just the origin to ensure the link works correctly
+    return window.location.origin
   }
 
   const handleCopyLink = () => {
@@ -134,9 +135,6 @@ export function JourneyScreen({
                   You have {permission} access to this group
                 </span>
               )}
-              <span className="block text-sm text-blue-600 mt-1">
-                Realtime updates are powered by Supabase.
-              </span>
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
