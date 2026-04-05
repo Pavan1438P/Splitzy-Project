@@ -76,10 +76,12 @@ export default function Home() {
     loadGroupData(sharedGroupId)
       .then((groupData) => {
         if (!groupData) {
-          setSharedLoadError('Group not found. Check the shared link or ask the creator to resend it.')
+          console.error('Failed to load group from Supabase:', sharedGroupId)
+          setSharedLoadError('Group not found. Make sure the group exists and the link is correct.')
           return
         }
 
+        console.log('Group loaded successfully:', groupData.id)
         setMembers(groupData.members)
         setTransactions(
           groupData.transactions.map((transaction) => ({
@@ -104,8 +106,9 @@ export default function Home() {
           )
         })
       })
-      .catch(() => {
-        setSharedLoadError('Unable to load shared group. Please try again.')
+      .catch((err) => {
+        console.error('Error loading shared group:', err)
+        setSharedLoadError('Unable to load shared group. Please check your internet connection and try again.')
       })
       .finally(() => {
         setSharedLoading(false)

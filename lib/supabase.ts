@@ -7,34 +7,55 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? ''
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
 export async function loadGroupData(groupId: string): Promise<GroupData | null> {
-  const { data, error } = await supabase
-    .from('groups')
-    .select('id,creator,members,transactions,created_at')
-    .eq('id', groupId)
-    .single()
+  try {
+    const { data, error } = await supabase
+      .from('groups')
+      .select('id,creator,members,transactions,created_at')
+      .eq('id', groupId)
+      .single()
 
-  if (error || !data) {
+    if (error) {
+      console.error('Error loading group:', error.message)
+      return null
+    }
+
+    if (!data) {
+      console.warn('Group not found:', groupId)
+      return null
+    }
+
+    return {
+      id: data.id,
+      creator: data.creator,
+      members: data.members ?? [],
+      transactions: data.transactions ?? [],
+      createdAt: new Date(data.created_at),
+    }
+  } catch (err) {
+    console.error('Load group exception:', err)
     return null
-  }
-
-  return {
-    id: data.id,
-    creator: data.creator,
-    members: data.members ?? [],
-    transactions: data.transactions ?? [],
-    createdAt: new Date(data.created_at),
   }
 }
 
 export async function saveGroupData(groupData: GroupData): Promise<void> {
-  await supabase.from('groups').upsert({
-    id: groupData.id,
-    creator: groupData.creator,
-    members: groupData.members,
-    transactions: groupData.transactions,
-    created_at: groupData.createdAt.toISOString(),
-    updated_at: new Date().toISOString(),
-  })
+  try {
+    const { error } = await supabase.from('groups').upsert({
+      id: groupData.id,
+      creator: groupData.creator,
+      members: groupData.members,
+      transactions: groupData.transactions,
+      created_at: groupData.createdAt.toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+
+    if (error) {
+      console.error('Error saving group:', error.message)
+    } else {
+      console.log('Group saved successfully:', groupData.id)
+    }
+  } catch (err) {
+    console.error('Save group exception:', err)
+  }
 }
 
 export async function deleteGroupData(groupId: string): Promise<void> {
