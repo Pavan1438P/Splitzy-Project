@@ -1,7 +1,7 @@
 # Splitzy - Expense Splitter App
 
 A modern expense splitting app built with Next.js, TypeScript, and Tailwind CSS.
-
+Here is the website link:- https://splitzy-project.vercel.app/
 ## Features
 
 - ✅ Create groups and add members
