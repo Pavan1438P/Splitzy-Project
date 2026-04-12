@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dialog"
 import { AlertCircle, ArrowRight, CheckCircle2 } from "lucide-react"
 import type { Transaction } from "@/app/page"
+import { formatCurrency } from "@/lib/currency"
 
 interface EndJourneyScreenProps {
   transactions: Transaction[]
@@ -144,7 +145,7 @@ export function EndJourneyScreen({
             {/* Summary */}
             <div className="rounded-lg bg-muted p-4 text-center">
               <p className="text-sm text-muted-foreground">Total Spent</p>
-              <p className="text-3xl font-bold text-primary">${totalSpent.toFixed(2)}</p>
+              <p className="text-3xl font-bold text-primary">{formatCurrency(totalSpent)}</p>
               <p className="text-sm text-muted-foreground">
                 {activeTransactions.length} transaction{activeTransactions.length !== 1 ? "s" : ""}
               </p>
@@ -153,31 +154,50 @@ export function EndJourneyScreen({
             {/* All Transactions */}
             <div className="space-y-3">
               <h3 className="font-semibold">All Transactions</h3>
-              {activeTransactions.length === 0 ? (
+              {transactions.length === 0 ? (
                 <p className="py-4 text-center text-muted-foreground">
                   No transactions were recorded
                 </p>
               ) : (
                 <div className="max-h-[300px] space-y-2 overflow-y-auto pr-2">
-                  {activeTransactions.map((transaction) => (
-                    <div
-                      key={transaction.id}
-                      className="rounded-lg border bg-card p-3"
-                    >
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <p className="font-medium">{transaction.payer}</p>
-                          <p className="text-sm text-muted-foreground">
-                            paid for {transaction.onWhom}
+                  {transactions.map((transaction) => {
+                    const isCompleted = transaction.status === "completed"
+                    return (
+                      <div
+                        key={transaction.id}
+                        className={`rounded-lg border p-3 ${
+                          isCompleted
+                            ? "border-green-200 bg-green-50 opacity-75"
+                            : "bg-card"
+                        }`}
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <p className={`font-medium ${ isCompleted ? "text-green-800" : "" }`}>
+                                {transaction.payer}
+                              </p>
+                              {isCompleted && (
+                                <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
+                                  <CheckCircle2 className="h-3 w-3" />
+                                  Completed · Split
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-sm text-muted-foreground">
+                              paid for {transaction.onWhom}
+                            </p>
+                            <p className={`mt-1 text-sm ${ isCompleted ? "line-through text-muted-foreground" : "" }`}>
+                              {transaction.description}
+                            </p>
+                          </div>
+                          <p className={`font-semibold ${ isCompleted ? "text-green-700 line-through" : "text-primary" }`}>
+                            {formatCurrency(transaction.amount)}
                           </p>
-                          <p className="mt-1 text-sm">{transaction.description}</p>
                         </div>
-                        <p className="font-semibold text-primary">
-                          ${transaction.amount.toFixed(2)}
-                        </p>
                       </div>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               )}
             </div>
@@ -201,7 +221,7 @@ export function EndJourneyScreen({
                         <span className="font-medium">{balance.to}</span>
                       </div>
                       <span className="font-semibold text-primary">
-                        ${balance.amount.toFixed(2)}
+                        {formatCurrency(balance.amount)}
                       </span>
                     </div>
                   ))}
