@@ -19,6 +19,7 @@ export type Transaction = {
   onWhom: string
   description: string
   timestamp: Date
+  status?: "active" | "completed"
 }
 
 export type AppState =
@@ -87,6 +88,7 @@ export default function Home() {
           groupData.transactions.map((transaction) => ({
             ...transaction,
             timestamp: new Date(transaction.timestamp),
+            status: transaction.status ?? "active",
           })),
         )
         setCreator(groupData.creator)
@@ -102,6 +104,7 @@ export default function Home() {
             updatedData.transactions.map((transaction) => ({
               ...transaction,
               timestamp: new Date(transaction.timestamp),
+              status: transaction.status ?? "active",
             })),
           )
         })
@@ -164,6 +167,7 @@ export default function Home() {
       setTransactions(updatedData.transactions.map((transaction) => ({
         ...transaction,
         timestamp: new Date(transaction.timestamp),
+        status: transaction.status ?? "active",
       })))
     })
   }
@@ -175,9 +179,21 @@ export default function Home() {
       ...transaction,
       id: crypto.randomUUID(),
       timestamp: new Date(),
+      status: transaction.status ?? "active",
     }
 
     const updatedTransactions = [...transactions, newTransaction]
+    setTransactions(updatedTransactions)
+    await saveGroupState(groupId, members, updatedTransactions, creator)
+  }
+
+  const handleCompleteTransaction = async (transactionId: string) => {
+    if (!groupId) return
+
+    const updatedTransactions = transactions.map((transaction) =>
+      transaction.id === transactionId ? { ...transaction, status: "completed" as const } : transaction,
+    )
+
     setTransactions(updatedTransactions)
     await saveGroupState(groupId, members, updatedTransactions, creator)
   }
@@ -248,6 +264,7 @@ export default function Home() {
               members={members}
               transactions={transactions}
               onAddTransaction={handleAddTransaction}
+              onCompleteTransaction={handleCompleteTransaction}
               onEndJourney={handleEndJourney}
               permission={permission}
               canEndJourney={permission === 'creator'}

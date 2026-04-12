@@ -38,6 +38,10 @@ export function EndJourneyScreen({
   isViewOnly = false,
 }: EndJourneyScreenProps) {
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false)
+  const activeTransactions = useMemo(
+    () => transactions.filter((transaction) => transaction.status !== "completed"),
+    [transactions],
+  )
 
   // Calculate who owes whom
   const balances = useMemo(() => {
@@ -50,7 +54,7 @@ export function EndJourneyScreen({
       owes[member] = 0
     })
 
-    transactions.forEach((t) => {
+    activeTransactions.forEach((t) => {
       paid[t.payer] = (paid[t.payer] || 0) + t.amount
       
       // Parse beneficiaries from onWhom field
@@ -119,9 +123,9 @@ export function EndJourneyScreen({
     }
 
     return settlements
-  }, [transactions, members])
+  }, [activeTransactions, members])
 
-  const totalSpent = transactions.reduce((sum, t) => sum + t.amount, 0)
+  const totalSpent = activeTransactions.reduce((sum, t) => sum + t.amount, 0)
 
   return (
     <div className="min-h-screen px-4 py-8">
@@ -142,20 +146,20 @@ export function EndJourneyScreen({
               <p className="text-sm text-muted-foreground">Total Spent</p>
               <p className="text-3xl font-bold text-primary">${totalSpent.toFixed(2)}</p>
               <p className="text-sm text-muted-foreground">
-                {transactions.length} transaction{transactions.length !== 1 ? "s" : ""}
+                {activeTransactions.length} transaction{activeTransactions.length !== 1 ? "s" : ""}
               </p>
             </div>
 
             {/* All Transactions */}
             <div className="space-y-3">
               <h3 className="font-semibold">All Transactions</h3>
-              {transactions.length === 0 ? (
+              {activeTransactions.length === 0 ? (
                 <p className="py-4 text-center text-muted-foreground">
                   No transactions were recorded
                 </p>
               ) : (
                 <div className="max-h-[300px] space-y-2 overflow-y-auto pr-2">
-                  {transactions.map((transaction) => (
+                  {activeTransactions.map((transaction) => (
                     <div
                       key={transaction.id}
                       className="rounded-lg border bg-card p-3"
@@ -205,7 +209,7 @@ export function EndJourneyScreen({
               </div>
             )}
 
-            {balances.length === 0 && transactions.length > 0 && (
+            {balances.length === 0 && activeTransactions.length > 0 && (
               <div className="rounded-lg bg-primary/10 p-4 text-center">
                 <CheckCircle2 className="mx-auto mb-2 h-8 w-8 text-primary" />
                 <p className="font-medium">All Settled!</p>

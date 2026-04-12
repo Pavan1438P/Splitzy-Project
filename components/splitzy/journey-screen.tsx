@@ -1,11 +1,10 @@
 "use client"
 
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Label } from "@/components/ui/label"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   Select,
   SelectContent,
@@ -21,14 +20,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { Copy, Share2, Check, Receipt, Eye, Flag } from "lucide-react"
+import { Check, Copy, Eye, Flag, Share2, Zap } from "lucide-react"
 import type { Transaction } from "@/app/page"
+import { formatCurrency, hasDecimal, suggestEqualSplits } from "@/lib/currency"
 
 interface JourneyScreenProps {
   groupId: string
   members: string[]
   transactions: Transaction[]
   onAddTransaction: (transaction: Omit<Transaction, "id" | "timestamp">) => void
+  onCompleteTransaction?: (transactionId: string) => void
   onEndJourney: () => void
   permission?: "creator" | "editor" | "viewer"
   canEndJourney?: boolean
@@ -39,21 +40,33 @@ export function JourneyScreen({
   members,
   transactions,
   onAddTransaction,
+  onCompleteTransaction,
   onEndJourney,
   permission = "creator",
   canEndJourney = true,
 }: JourneyScreenProps) {
-  const [selectedPayer, setSelectedPayer] = useState<string>("")
-  const [amount, setAmount] = useState<string>("")
-  const [onWhom, setOnWhom] = useState<string>("")
-  const [description, setDescription] = useState<string>("")
+  const [selectedPayer, setSelectedPayer] = useState("")
+  const [amount, setAmount] = useState("")
+  const [onWhom, setOnWhom] = useState("")
+  const [description, setDescription] = useState("")
   const [copied, setCopied] = useState(false)
   const [shareDialogOpen, setShareDialogOpen] = useState(false)
   const [transactionsDialogOpen, setTransactionsDialogOpen] = useState(false)
+  const [suggestedSplits, setSuggestedSplits] = useState<Record<string, number[]>>({})
+  const [selectedForSplit, setSelectedForSplit] = useState<string | null>(null)
+
+  const activeTransactions = useMemo(
+    () => transactions.filter((transaction) => transaction.status !== "completed"),
+    [transactions],
+  )
+
+  const selectedTransaction = useMemo(
+    () => activeTransactions.find((transaction) => transaction.id === selectedForSplit) ?? null,
+    [activeTransactions, selectedForSplit],
+  )
 
   const getShareBaseUrl = () => {
-    if (typeof window === 'undefined') return ''
-    // Use just the origin to ensure the link works correctly
+    if (typeof window === "undefined") return ""
     return window.location.origin
   }
 
@@ -64,11 +77,11 @@ export function JourneyScreen({
     setTimeout(() => setCopied(false), 2000)
   }
 
-  const handleShare = (permission: "edit" | "view") => {
+  const handleShare = (invitePermission: "edit" | "view") => {
     const baseUrl = getShareBaseUrl()
-    const shareUrl = `${baseUrl}?group=${groupId}&perm=${permission === "edit" ? "editor" : "viewer"}`
-    const shareText = `Join my Splitzy group!\n\n${shareUrl}\n\nPermission: ${permission === "edit" ? "Can Edit Transactions" : "View Only"}`
-    
+    const shareUrl = `${baseUrl}?group=${groupId}&perm=${invitePermission === "edit" ? "editor" : "viewer"}`
+    const shareText = `Join my Splitzy group!\n\n${shareUrl}\n\nPermission: ${invitePermission === "edit" ? "Can Edit Transactions" : "View Only"}`
+
     if (navigator.share) {
       navigator.share({
         title: "Splitzy Group Invite",
@@ -78,79 +91,113 @@ export function JourneyScreen({
     } else {
       navigator.clipboard.writeText(shareText)
     }
+
     setShareDialogOpen(false)
+  }
+
+  const parseBeneficiaries = (beneficiaryText: string) => {
+    if (beneficiaryText.toLowerCase().trim() === "everyone") {
+      return members
+    }
+    return beneficiaryText
+      .split(",")
+      .map((name) => name.trim())
+      .filter(Boolean)
   }
 
   const handleMakeTransaction = () => {
     if (!selectedPayer || !amount || !onWhom || !description) return
-    
-    // Validate that onWhom contains valid member names
+
     const trimmedOnWhom = onWhom.trim()
-    if (trimmedOnWhom.toLowerCase() !== "everyone") {
-      const names = trimmedOnWhom.split(',').map(name => name.trim()).filter(name => name)
-      const invalidNames = names.filter(name => {
-        return !members.some(member => 
-          member.toLowerCase() === name.toLowerCase()
-        )
-      })
-      
-      if (invalidNames.length > 0) {
-        alert(`Invalid member names: ${invalidNames.join(', ')}. Please use member names from your group or "Everyone".`)
-        return
-      }
-      
-      if (names.length === 0) {
-        alert('Please enter at least one valid member name or "Everyone".')
-        return
-      }
+    const beneficiaries = parseBeneficiaries(trimmedOnWhom)
+
+    if (beneficiaries.length === 0) {
+      alert("Please enter at least one valid member name or Everyone.")
+      return
     }
-    
+
+    const invalidNames = beneficiaries.filter(
+      (name) => !members.some((member) => member.toLowerCase() === name.toLowerCase()),
+    )
+    if (trimmedOnWhom.toLowerCase() !== "everyone" && invalidNames.length > 0) {
+      alert(`Invalid member names: ${invalidNames.join(", ")}. Please use names from your group.`)
+      return
+    }
+
     onAddTransaction({
       payer: selectedPayer,
       amount: parseFloat(amount),
       onWhom: trimmedOnWhom,
       description,
+      status: "active",
     })
 
-    // Reset form
     setSelectedPayer("")
     setAmount("")
     setOnWhom("")
     setDescription("")
   }
 
-  const isFormValid = selectedPayer && amount && parseFloat(amount) > 0 && onWhom && description
+  const handleSuggestSplit = (transactionId: string, transaction: Transaction) => {
+    const beneficiaries = parseBeneficiaries(transaction.onWhom)
+    const suggested = suggestEqualSplits(transaction.amount, beneficiaries.length)
+    setSuggestedSplits((prev) => ({ ...prev, [transactionId]: suggested }))
+  }
+
+  const handleInstantSplitDone = (transactionId: string, transaction: Transaction) => {
+    const beneficiaries = parseBeneficiaries(transaction.onWhom)
+    const suggested = suggestedSplits[transactionId] || suggestEqualSplits(transaction.amount, beneficiaries.length)
+
+    beneficiaries.forEach((beneficiary, index) => {
+      onAddTransaction({
+        payer: transaction.payer,
+        amount: suggested[index],
+        onWhom: beneficiary,
+        description: `${transaction.description} (split)`,
+        status: "active",
+      })
+    })
+
+    onCompleteTransaction?.(transactionId)
+
+    setSuggestedSplits((prev) => {
+      const next = { ...prev }
+      delete next[transactionId]
+      return next
+    })
+    setSelectedForSplit(null)
+  }
+
+  const isFormValid = !!selectedPayer && !!onWhom && !!description && !!amount && parseFloat(amount) > 0
+  const canEdit = permission === "creator" || permission === "editor"
 
   return (
     <div className="min-h-screen px-4 py-8">
       <div className="mx-auto max-w-2xl space-y-6">
-        {/* Group Link Section */}
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">Your Group Link</CardTitle>
             <CardDescription>
               Share this link with your group members
-              {permission !== 'creator' && (
-                <span className="block text-sm text-orange-600 mt-1">
-                  You have {permission} access to this group
-                </span>
+              {permission !== "creator" && (
+                <span className="mt-1 block text-sm text-orange-600">You have {permission} access to this group</span>
               )}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center gap-2">
-              <code className="flex-1 rounded-md bg-muted px-4 py-3 font-mono text-sm break-all">
-                {typeof window !== 'undefined' ? `${window.location.origin}?group=${groupId}&perm=${permission}` : groupId}
+              <code className="flex-1 break-all rounded-md bg-muted px-4 py-3 font-mono text-sm">
+                {typeof window !== "undefined"
+                  ? `${window.location.origin}?group=${groupId}&perm=${permission}`
+                  : groupId}
               </code>
               <Button variant="outline" size="icon" onClick={handleCopyLink}>
                 {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
               </Button>
             </div>
-            {permission === 'creator' && (
+            {permission === "creator" && (
               <div className="flex items-center justify-between">
-                <p className="text-sm text-muted-foreground">
-                  Share different permission levels
-                </p>
+                <p className="text-sm text-muted-foreground">Share different permission levels</p>
                 <Button variant="outline" size="sm" onClick={() => setShareDialogOpen(true)}>
                   <Share2 className="mr-2 h-4 w-4" />
                   Share
@@ -160,171 +207,191 @@ export function JourneyScreen({
           </CardContent>
         </Card>
 
-        {/* Journey Section */}
         <Card>
-          <CardHeader className="text-center">
-            <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-              <Receipt className="h-5 w-5 text-primary" />
-            </div>
-            <CardTitle>Start Your Journey</CardTitle>
-            <CardDescription>Record expenses as they happen</CardDescription>
+          <CardHeader>
+            <CardTitle>Add Transaction</CardTitle>
+            <CardDescription>Record an expense and split instantly when needed</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label>Team Member</Label>
-                <Select value={selectedPayer} onValueChange={setSelectedPayer}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select who paid" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {members.map((member) => (
-                      <SelectItem key={member} value={member}>
-                        {member}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+            <Select value={selectedPayer} onValueChange={setSelectedPayer} disabled={!canEdit}>
+              <SelectTrigger>
+                <SelectValue placeholder="Who paid?" />
+              </SelectTrigger>
+              <SelectContent>
+                {members.map((member) => (
+                  <SelectItem key={member} value={member}>
+                    {member}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
-              <div className="space-y-2">
-                <Label htmlFor="amount">How much money spending</Label>
-                <Input
-                  id="amount"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  placeholder="0.00"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                />
-              </div>
+            <Input
+              type="number"
+              value={amount}
+              onChange={(event) => setAmount(event.target.value)}
+              placeholder="Amount"
+              disabled={!canEdit}
+            />
+
+            <Input
+              value={onWhom}
+              onChange={(event) => setOnWhom(event.target.value)}
+              placeholder="On whom? (e.g. Everyone or A, B, C)"
+              disabled={!canEdit}
+            />
+
+            <Textarea
+              value={description}
+              onChange={(event) => setDescription(event.target.value)}
+              placeholder="Description"
+              disabled={!canEdit}
+            />
+
+            <div className="flex flex-wrap gap-2">
+              <Button onClick={handleMakeTransaction} disabled={!isFormValid || !canEdit}>
+                Add Transaction
+              </Button>
+              <Button variant="outline" onClick={() => setTransactionsDialogOpen(true)}>
+                <Eye className="mr-2 h-4 w-4" />
+                View Transactions ({activeTransactions.length})
+              </Button>
+              <Button variant="secondary" onClick={onEndJourney} disabled={!canEndJourney}>
+                <Flag className="mr-2 h-4 w-4" />
+                End Journey
+              </Button>
             </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="onWhom">On Whom</Label>
-              <Input
-                id="onWhom"
-                type="text"
-                placeholder="Who is this expense for? (e.g., Everyone, John, Mary, or John, Mary)"
-                value={onWhom}
-                onChange={(e) => setOnWhom(e.target.value)}
-              />
-              <p className="text-xs text-muted-foreground">
-                Enter "Everyone" or specific names separated by commas
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
-              <Textarea
-                id="description"
-                placeholder="What is this expense for?"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                rows={3}
-              />
-            </div>
-
-            <Button
-              className="w-full"
-              onClick={handleMakeTransaction}
-              disabled={!isFormValid}
-            >
-              Make Transaction
-            </Button>
           </CardContent>
         </Card>
-
-        {/* Action Buttons */}
-        <div className="flex flex-col gap-3 sm:flex-row">
-          <Button
-            variant="outline"
-            className="flex-1"
-            onClick={() => setTransactionsDialogOpen(true)}
-          >
-            <Eye className="mr-2 h-4 w-4" />
-            See Transactions Until Now
-          </Button>
-          {canEndJourney && (
-            <Button
-              variant="default"
-              className="flex-1 bg-accent text-accent-foreground hover:bg-accent/90"
-              onClick={onEndJourney}
-            >
-              <Flag className="mr-2 h-4 w-4" />
-              End Journey
-            </Button>
-          )}
-        </div>
-
-        {/* Transaction Count */}
-        {transactions.length > 0 && (
-          <p className="text-center text-sm text-muted-foreground">
-            {transactions.length} transaction{transactions.length !== 1 ? "s" : ""} recorded
-          </p>
-        )}
       </div>
 
-      {/* Share Dialog */}
       <Dialog open={shareDialogOpen} onOpenChange={setShareDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Share Group Link</DialogTitle>
-            <DialogDescription>
-              Choose what permissions other users should have
-            </DialogDescription>
+            <DialogTitle>Share Group</DialogTitle>
+            <DialogDescription>Choose how others can access this group.</DialogDescription>
           </DialogHeader>
-          <DialogFooter className="flex-col gap-2 sm:flex-row">
-            <Button variant="outline" onClick={() => handleShare("view")} className="flex-1">
-              View Only
-            </Button>
-            <Button onClick={() => handleShare("edit")} className="flex-1">
-              Can Edit
-            </Button>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => handleShare("view")}>Share View Link</Button>
+            <Button onClick={() => handleShare("edit")}>Share Edit Link</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Transactions Dialog */}
       <Dialog open={transactionsDialogOpen} onOpenChange={setTransactionsDialogOpen}>
-        <DialogContent className="max-h-[80vh] overflow-y-auto sm:max-w-lg">
+        <DialogContent className="max-h-[80vh] overflow-y-auto sm:max-w-xl">
           <DialogHeader>
-            <DialogTitle>Transactions Until Now</DialogTitle>
+            <DialogTitle>Active Transactions</DialogTitle>
             <DialogDescription>
-              All recorded expenses in this journey
+              Use Suggest Split to preview how amounts are divided. If an amount has decimals, Splitzy converts it into clean integer shares.
             </DialogDescription>
           </DialogHeader>
+
           <div className="space-y-3">
-            {transactions.length === 0 ? (
-              <p className="py-8 text-center text-muted-foreground">
-                No transactions recorded yet
-              </p>
+            {activeTransactions.length === 0 ? (
+              <p className="py-8 text-center text-muted-foreground">No active transactions</p>
             ) : (
-              transactions.map((transaction) => (
-                <div
-                  key={transaction.id}
-                  className="rounded-lg border bg-card p-4"
-                >
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <p className="font-medium">{transaction.payer}</p>
-                      <p className="text-sm text-muted-foreground">
-                        paid for {transaction.onWhom}
+              activeTransactions.map((transaction) => {
+                const beneficiaries = parseBeneficiaries(transaction.onWhom)
+                const suggested = suggestedSplits[transaction.id]
+                const hasTxnDecimal = hasDecimal(transaction.amount)
+
+                return (
+                  <div key={transaction.id} className="space-y-2 rounded-md border p-3">
+                    <div className="text-sm">
+                      <p className="font-medium">{transaction.description}</p>
+                      <p className="text-muted-foreground">
+                        {transaction.payer} paid {formatCurrency(transaction.amount)} for {transaction.onWhom}
                       </p>
+                      {hasTxnDecimal && (
+                        <p className="text-xs text-orange-600">Decimal amount detected. Instant Split will use integer values.</p>
+                      )}
                     </div>
-                    <p className="text-lg font-semibold text-primary">
-                      ${transaction.amount.toFixed(2)}
-                    </p>
+
+                    {!suggested ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleSuggestSplit(transaction.id, transaction)}
+                        className="w-full text-xs"
+                      >
+                        Suggest Split
+                      </Button>
+                    ) : (
+                      <div className="space-y-2">
+                        <div className="space-y-1 rounded border border-green-200 bg-green-50 p-2 text-xs">
+                          {beneficiaries.map((beneficiary, index) => (
+                            <p key={`${transaction.id}-${beneficiary}-${index}`} className="text-green-700">
+                              {beneficiary}: {formatCurrency(suggested[index])}
+                            </p>
+                          ))}
+                        </div>
+                        <Button
+                          size="sm"
+                          onClick={() => setSelectedForSplit(transaction.id)}
+                          className="w-full bg-green-600 text-xs hover:bg-green-700"
+                        >
+                          <Zap className="mr-1 h-3 w-3" />
+                          Instant Split
+                        </Button>
+                      </div>
+                    )}
                   </div>
-                  <p className="mt-2 text-sm">{transaction.description}</p>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    {transaction.timestamp.toLocaleString()}
-                  </p>
-                </div>
-              ))
+                )
+              })
             )}
           </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!selectedForSplit} onOpenChange={(open) => !open && setSelectedForSplit(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirm Instant Split</DialogTitle>
+            <DialogDescription>
+              Review each person's share. Clicking Done creates individual split transactions and marks the original transaction as completed.
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedTransaction && (
+            <div className="space-y-3">
+              <div className="rounded-md border p-3 text-sm">
+                <p><strong>Description:</strong> {selectedTransaction.description}</p>
+                <p><strong>Paid by:</strong> {selectedTransaction.payer}</p>
+                <p><strong>Total:</strong> {formatCurrency(selectedTransaction.amount)}</p>
+              </div>
+
+              <div className="space-y-1 rounded border border-green-200 bg-green-50 p-3 text-sm">
+                {(suggestedSplits[selectedTransaction.id] ||
+                  suggestEqualSplits(selectedTransaction.amount, parseBeneficiaries(selectedTransaction.onWhom).length)).map(
+                  (splitAmount, index) => {
+                    const beneficiaries = parseBeneficiaries(selectedTransaction.onWhom)
+                    return (
+                      <p key={`${selectedTransaction.id}-confirm-${index}`} className="text-green-700">
+                        {beneficiaries[index]}: {formatCurrency(splitAmount)}
+                      </p>
+                    )
+                  },
+                )}
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSelectedForSplit(null)}>
+              Cancel
+            </Button>
+            <Button
+              className="bg-green-600 hover:bg-green-700"
+              onClick={() => {
+                if (selectedTransaction) {
+                  handleInstantSplitDone(selectedTransaction.id, selectedTransaction)
+                }
+              }}
+            >
+              Done
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
