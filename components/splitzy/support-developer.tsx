@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useRef } from "react"
-import QRCode from "qrcode.react"
+import { QRCodeSVG } from "qrcode.react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -24,12 +24,25 @@ export function SupportDeveloper({ variant = "button" }: SupportDeveloperProps) 
 
   const downloadQR = () => {
     if (qrRef.current) {
-      const canvas = qrRef.current.querySelector("canvas")
-      if (canvas) {
-        const link = document.createElement("a")
-        link.href = canvas.toDataURL("image/png")
-        link.download = "support-developer.png"
-        link.click()
+      const svg = qrRef.current.querySelector("svg")
+      if (svg) {
+        const svgData = new XMLSerializer().serializeToString(svg)
+        const canvas = document.createElement("canvas")
+        const ctx = canvas.getContext("2d")
+        const img = new Image()
+        
+        canvas.width = svg.clientWidth
+        canvas.height = svg.clientHeight
+        
+        img.onload = () => {
+          ctx?.drawImage(img, 0, 0)
+          const link = document.createElement("a")
+          link.href = canvas.toDataURL("image/png")
+          link.download = "support-developer-qr.png"
+          link.click()
+        }
+        
+        img.src = "data:image/svg+xml;base64," + btoa(svgData)
       }
     }
   }
@@ -80,7 +93,7 @@ export function SupportDeveloper({ variant = "button" }: SupportDeveloperProps) 
               ref={qrRef}
               className="rounded-lg border border-border p-4"
             >
-              <QRCode
+              <QRCodeSVG
                 value={`upi://pay?pa=${UPI_ID}&pn=GhostSplits&tn=Support`}
                 size={256}
                 level="H"
