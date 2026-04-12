@@ -109,7 +109,13 @@ export function JourneyScreen({
   const handleMakeTransaction = () => {
     if (!selectedPayer || !amount || !onWhom || !description) return
 
-    const parsedAmount = parseFloat(amount)
+    const trimmedAmount = amount.trim()
+    if (!/^\d+(\.\d{1,2})?$/.test(trimmedAmount)) {
+      alert("Please enter a valid amount (up to 2 decimal places).")
+      return
+    }
+
+    const parsedAmount = parseFloat(trimmedAmount)
     if (isNaN(parsedAmount) || parsedAmount <= 0 || parsedAmount > 1_000_000) {
       alert("Amount must be between ₹1 and ₹10,00,000.")
       return
@@ -135,7 +141,7 @@ export function JourneyScreen({
       payer: selectedPayer,
       amount: parsedAmount,
       onWhom: trimmedOnWhom,
-      description,
+      description: description.trim(),
       status: "active",
     })
 

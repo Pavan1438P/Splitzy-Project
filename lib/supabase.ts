@@ -1,8 +1,14 @@
 import { createClient } from '@supabase/supabase-js'
 import type { GroupData } from '@/app/page'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? ''
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error(
+    'Missing Supabase environment variables. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.'
+  )
+}
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
@@ -38,21 +44,18 @@ export async function loadGroupData(groupId: string): Promise<GroupData | null> 
 }
 
 export async function saveGroupData(groupData: GroupData): Promise<void> {
-  try {
-    const { error } = await supabase.from('groups').upsert({
-      id: groupData.id,
-      creator: groupData.creator,
-      members: groupData.members,
-      transactions: groupData.transactions,
-      created_at: groupData.createdAt.toISOString(),
-      updated_at: new Date().toISOString(),
-    })
+  const { error } = await supabase.from('groups').upsert({
+    id: groupData.id,
+    creator: groupData.creator,
+    members: groupData.members,
+    transactions: groupData.transactions,
+    created_at: groupData.createdAt.toISOString(),
+    updated_at: new Date().toISOString(),
+  })
 
-    if (error) {
-      console.error('Error saving group:', error.message)
-    }
-  } catch (err) {
-    console.error('Save group exception:', err)
+  if (error) {
+    console.error('Error saving group:', error.message)
+    throw new Error(`Failed to save group: ${error.message}`)
   }
 }
 

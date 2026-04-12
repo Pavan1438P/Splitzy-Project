@@ -54,8 +54,11 @@ export function GroupCreation({ onGroupCreated, onBack }: GroupCreationProps) {
     const trimmedNames = memberNames.map((n) => n.trim().toLowerCase())
 
     memberNames.forEach((name, index) => {
-      if (!name.trim()) {
+      const trimmed = name.trim()
+      if (!trimmed) {
         nameErrors[index] = "Name is required"
+      } else if (trimmed.length > 30) {
+        nameErrors[index] = "Name must be 30 characters or less"
       }
     })
 

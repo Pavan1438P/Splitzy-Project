@@ -52,8 +52,10 @@ export default function Home() {
   const [isSharedLink, setIsSharedLink] = useState(false)
   const [sharedLoading, setSharedLoading] = useState(false)
   const [sharedLoadError, setSharedLoadError] = useState<string | null>(null)
+  const [saveFailed, setSaveFailed] = useState(false)
   const subscriptionCleanup = useRef<(() => void) | null>(null)
   const restoredFromStorage = useRef(false)
+  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const LOCAL_STORAGE_KEY = 'ghostsplits_session'
 
@@ -108,7 +110,7 @@ export default function Home() {
     } catch { /* corrupted data — ignore */ }
   }, [])
 
-  // Auto-save session to localStorage whenever key state changes
+  // Auto-save session to localStorage whenever key state changes (debounced)
   useEffect(() => {
     if (!isClient) return
     if (isSharedLink) return // don't persist shared sessions
@@ -118,18 +120,25 @@ export default function Home() {
       return
     }
 
-    try {
-      const session = {
-        appState,
-        groupId,
-        members,
-        transactions,
-        creator,
-        permission,
-        savedAt: new Date().toISOString(),
-      }
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(session))
-    } catch { /* storage full or unavailable — ignore */ }
+    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current)
+    saveTimeoutRef.current = setTimeout(() => {
+      try {
+        const session = {
+          appState,
+          groupId,
+          members,
+          transactions,
+          creator,
+          permission,
+          savedAt: new Date().toISOString(),
+        }
+        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(session))
+      } catch { /* storage full or unavailable — ignore */ }
+    }, 500)
+
+    return () => {
+      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current)
+    }
   }, [isClient, isSharedLink, appState, groupId, members, transactions, creator, permission, clearLocalSession])
 
   useEffect(() => {
@@ -142,6 +151,8 @@ export default function Home() {
     if (!sharedGroupId || !sharedPermission) return
     if (!['creator', 'editor', 'viewer'].includes(sharedPermission)) return
 
+    let cancelled = false
+
     const permissionValue = sharedPermission as Permission
     setIsSharedLink(true)
     setSharedLoading(true)
@@ -151,13 +162,14 @@ export default function Home() {
 
     loadGroupData(sharedGroupId)
       .then((groupData) => {
+        if (cancelled) return
+
         if (!groupData) {
           console.error('Failed to load group from Supabase:', sharedGroupId)
           setSharedLoadError('Group not found. Make sure the group exists and the link is correct.')
           return
         }
 
-        console.log('Group loaded successfully:', groupData.id)
         setMembers(groupData.members)
         setTransactions(
           groupData.transactions.map((transaction) => ({
@@ -185,14 +197,16 @@ export default function Home() {
         })
       })
       .catch((err) => {
+        if (cancelled) return
         console.error('Error loading shared group:', err)
         setSharedLoadError('Unable to load shared group. Please check your internet connection and try again.')
       })
       .finally(() => {
-        setSharedLoading(false)
+        if (!cancelled) setSharedLoading(false)
       })
 
     return () => {
+      cancelled = true
       subscriptionCleanup.current?.()
       subscriptionCleanup.current = null
     }
@@ -220,10 +234,7 @@ export default function Home() {
   }
 
   const handleGroupCreated = async (memberNames: string[]) => {
-    const uniqueId = `GHOST-${Date.now().toString(36).toUpperCase()}-${Math.random()
-      .toString(36)
-      .substring(2, 6)
-      .toUpperCase()}`
+    const uniqueId = `GHOST-${crypto.randomUUID()}`
 
     setMembers(memberNames)
     setGroupId(uniqueId)
@@ -259,7 +270,13 @@ export default function Home() {
 
     const updatedTransactions = [...transactions, newTransaction]
     setTransactions(updatedTransactions)
-    await saveGroupState(groupId, members, updatedTransactions, creator)
+
+    try {
+      await saveGroupState(groupId, members, updatedTransactions, creator)
+      setSaveFailed(false)
+    } catch {
+      setSaveFailed(true)
+    }
   }
 
   const handleCompleteTransaction = async (transactionId: string) => {
@@ -270,7 +287,13 @@ export default function Home() {
     )
 
     setTransactions(updatedTransactions)
-    await saveGroupState(groupId, members, updatedTransactions, creator)
+
+    try {
+      await saveGroupState(groupId, members, updatedTransactions, creator)
+      setSaveFailed(false)
+    } catch {
+      setSaveFailed(true)
+    }
   }
 
   const handleEndJourney = () => {
@@ -335,6 +358,12 @@ export default function Home() {
         </div>
       ) : (
         <>
+          {saveFailed && (
+            <div className="bg-destructive/10 border-b border-destructive/20 px-4 py-2 text-center text-sm text-destructive">
+              Failed to save — check your connection.{' '}
+              <button className="underline font-medium" onClick={() => window.location.reload()}>Retry</button>
+            </div>
+          )}
           {appState === 'welcome' && <WelcomeScreen onCreateGroup={handleCreateGroup} />}
           {appState === 'createGroup' && (
             <GroupCreation onGroupCreated={handleGroupCreated} onBack={() => setAppState('welcome')} />
