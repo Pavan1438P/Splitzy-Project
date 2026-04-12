@@ -108,11 +108,12 @@ export function EndJourneyScreen({
       const debt = -netBalance[debtor]
       const amount = Math.min(credit, debt)
 
-      if (amount > 0.01) {
+      const roundedAmount = Math.round(amount / 10) * 10
+      if (roundedAmount > 0) {
         settlements.push({
           from: debtor,
           to: creditor,
-          amount: Math.round(amount * 100) / 100,
+          amount: roundedAmount,
         })
       }
 
