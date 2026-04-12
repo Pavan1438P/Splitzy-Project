@@ -87,21 +87,13 @@ export function GroupCreation({ onGroupCreated, onBack }: GroupCreationProps) {
   const handleBackClick = () => {
     if (hasUnsavedData && step === "names") {
       setShowDataLossWarning(true)
-    } else if (step === "count") {
+    } else if (step === "names") {
+      setStep("count")
+    } else {
       onBack()
-    } else {handleBackClick}
-      >
-        <ArrowLeft className="mr-2 h-4 w-4" />
-        Back
-      </Button>
+    }
+  }
 
-      <DataLossConfirmationDialog
-        isOpen={showDataLossWarning}
-        onConfirm={confirmDataLoss}
-        onCancel={() => setShowDataLossWarning(false)}
-        title="Discard Member List?"
-        description="You have entered member names. Since GhostSplits doesn't use login, your data won't be saved. Are you sure you want to go back and discard these changes?"
-      /
   const confirmDataLoss = () => {
     setShowDataLossWarning(false)
     onBack()
@@ -113,11 +105,19 @@ export function GroupCreation({ onGroupCreated, onBack }: GroupCreationProps) {
       <Button
         variant="ghost"
         className="absolute left-4 top-4"
-        onClick={step === "count" ? onBack : () => setStep("count")}
+        onClick={handleBackClick}
       >
         <ArrowLeft className="mr-2 h-4 w-4" />
         Back
       </Button>
+
+      <DataLossConfirmationDialog
+        isOpen={showDataLossWarning}
+        onConfirm={confirmDataLoss}
+        onCancel={() => setShowDataLossWarning(false)}
+        title="Discard Member List?"
+        description="You have entered member names. Since GhostSplits doesn't use login, your data won't be saved. Are you sure you want to go back and discard these changes?"
+      />
 
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">

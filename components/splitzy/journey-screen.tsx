@@ -177,7 +177,8 @@ export function JourneyScreen({
     setSelectedForSplit(null)
   }
 
-  const isFormValid = !!selectedPayer && !!onWhom && !!description &&
+  const isFormValid = !!selectedPayer && !!onWhom && !!description && !!amount && parseFloat(amount) > 0
+  const canEdit = permission === "creator" || permission === "editor"
 
   const handleEndJourneyClick = () => {
     if (activeTransactions.length > 0) {
@@ -187,19 +188,10 @@ export function JourneyScreen({
     }
   }
 
-
-        <DataLossConfirmationDialog
-          isOpen={showDataLossWarning}
-          onConfirm={confirmEndJourney}
-          onCancel={() => setShowDataLossWarning(false)}
-          title="End Journey?"
-          description="You have unsaved transactions. Since GhostSplits doesn't use login, your data won't be saved if you exit now. Are you sure you want to end the journey without saving?"
-        />
   const confirmEndJourney = () => {
     setShowDataLossWarning(false)
     onEndJourney()
-  } !!amount && parseFloat(amount) > 0
-  const canEdit = permission === "creator" || permission === "editor"
+  }
 
   return (
     <div className="min-h-screen px-4 py-8">
@@ -432,6 +424,14 @@ export function JourneyScreen({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <DataLossConfirmationDialog
+        isOpen={showDataLossWarning}
+        onConfirm={confirmEndJourney}
+        onCancel={() => setShowDataLossWarning(false)}
+        title="End Journey?"
+        description="You have unsaved transactions. Since GhostSplits doesn't use login, your data won't be saved if you exit now. Are you sure you want to end the journey without saving?"
+      />
     </div>
   )
 }

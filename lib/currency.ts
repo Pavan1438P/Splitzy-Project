@@ -9,26 +9,18 @@ export function formatCurrency(amount: number): string {
 
 /**
  * Suggest integer split values that sum to a rounded total.
- * Example: 100 / 3 => [40, 30, 30]
+ * Example: 100 / 3 => [34, 33, 33]
  */
 export function suggestEqualSplits(amount: number, numSplits: number): number[] {
   if (numSplits <= 0) return []
 
   const roundedAmount = Math.round(amount)
-  const baseAmount = Math.floor(roundedAmount / numSplits / 10) * 10
+  const baseAmount = Math.floor(roundedAmount / numSplits)
+  const remainder = roundedAmount % numSplits
 
-  const splits = Array(numSplits).fill(baseAmount)
-  let remaining = roundedAmount - baseAmount * numSplits
-
-  let index = 0
-  while (remaining >= 10) {
-    splits[index % numSplits] += 10
-    remaining -= 10
-    index += 1
-  }
-
-  for (let i = 0; i < remaining; i += 1) {
-    splits[i % numSplits] += 1
+  const splits: number[] = []
+  for (let i = 0; i < numSplits; i++) {
+    splits.push(i < remainder ? baseAmount + 1 : baseAmount)
   }
 
   return splits

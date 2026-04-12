@@ -210,6 +210,8 @@ export default function Home() {
   const handleDoneSplitting = async () => {
     if (permission !== 'creator') return
 
+    const currentGroupId = groupId
+
     setMembers([])
     setGroupId('')
     setTransactions([])
@@ -217,8 +219,8 @@ export default function Home() {
     setPermission('creator')
     setAppState('welcome')
 
-    if (groupId) {
-      await deleteGroupData(groupId)
+    if (currentGroupId) {
+      await deleteGroupData(currentGroupId)
       subscriptionCleanup.current?.()
       subscriptionCleanup.current = null
     }
