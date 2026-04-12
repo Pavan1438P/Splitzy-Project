@@ -16,8 +16,8 @@ export function WelcomeScreen({ onCreateGroup }: WelcomeScreenProps) {
           <Image
             src="/GhostSplits_LOGO.png"
             alt="GhostSplits logo"
-            width={120}
-            height={120}
+            width={200}
+            height={200}
             priority
             className="object-contain"
             onError={(e) => {
@@ -56,10 +56,35 @@ export function WelcomeScreen({ onCreateGroup }: WelcomeScreenProps) {
         </Button>
       </div>
       
-      <footer className="border-t bg-card py-6 text-center">
-        <p className="text-sm font-medium text-muted-foreground">
-          NO LOGIN required, come use and go
-        </p>
+      <footer className="border-t bg-card py-8 text-center">
+        <div className="mb-4">
+          <p className="text-sm font-medium text-muted-foreground mb-4">
+            NO LOGIN required, come use and go
+          </p>
+          <div className="flex flex-col items-center justify-center gap-4 text-sm">
+            <div>
+              <p className="font-semibold text-foreground mb-2">Contact & Feedback</p>
+              <div className="flex flex-col gap-2">
+                <a 
+                  href="mailto:ghostsplits@gmail.com" 
+                  className="text-primary hover:underline transition-colors"
+                  aria-label="Email us at ghostsplits@gmail.com"
+                >
+                  Gmail: ghostsplits@gmail.com
+                </a>
+                <a 
+                  href="https://www.instagram.com/ghostsplits?igsh=MXBlaHo4Ym8xN2pwMw==&utm_source=ig_contact_invite" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-primary hover:underline transition-colors"
+                  aria-label="Follow us on Instagram"
+                >
+                  Instagram: @ghostsplits
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
       </footer>
     </div>
   )

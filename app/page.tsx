@@ -229,7 +229,7 @@ export default function Home() {
       {!isClient ? (
         <div className="flex min-h-screen items-center justify-center">
           <div className="text-center">
-            <Image src="/GhostSplits_LOGO.png" alt="GhostSplits" width={48} height={48} className="mx-auto mb-4 object-contain" />
+            <Image src="/GhostSplits_LOGO.png" alt="GhostSplits" width={100} height={100} className="mx-auto mb-4 object-contain" />
             <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
             <p className="text-sm text-muted-foreground">Loading GhostSplits...</p>
           </div>
@@ -237,7 +237,7 @@ export default function Home() {
       ) : isSharedLink && sharedLoading ? (
         <div className="flex min-h-screen items-center justify-center">
           <div className="text-center">
-            <Image src="/GhostSplits_LOGO.png" alt="GhostSplits" width={48} height={48} className="mx-auto mb-4 object-contain" />
+            <Image src="/GhostSplits_LOGO.png" alt="GhostSplits" width={100} height={100} className="mx-auto mb-4 object-contain" />
             <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
             <p className="text-sm text-muted-foreground">Loading shared group...</p>
           </div>
