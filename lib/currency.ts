@@ -2,7 +2,9 @@
  * Format amount as Indian Rupee style with 2 decimals.
  */
 export function formatCurrency(amount: number): string {
-  return `₹${amount.toFixed(2)} Rs`
+  const rounded = Math.round(amount * 100) / 100
+  const formatted = Number.isInteger(rounded) ? rounded.toString() : rounded.toFixed(2)
+  return `₹${formatted} Rs`
 }
 
 /**

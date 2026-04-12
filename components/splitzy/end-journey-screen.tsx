@@ -56,7 +56,7 @@ export function EndJourneyScreen({
     })
 
     activeTransactions.forEach((t) => {
-      paid[t.payer] = (paid[t.payer] || 0) + t.amount
+      paid[t.payer] = (paid[t.payer] || 0) + Math.round(t.amount)
       
       // Parse beneficiaries from onWhom field
       let beneficiaries: string[] = []
@@ -81,9 +81,14 @@ export function EndJourneyScreen({
         return
       }
       
-      const splitAmount = t.amount / beneficiaries.length
-      beneficiaries.forEach((beneficiary) => {
-        owes[beneficiary] = (owes[beneficiary] || 0) + splitAmount
+      // Integer split: floor amount per person, distribute remainder 1 rupee at a time
+      // This prevents floating-point fractions from compounding across multiple transactions
+      const totalInt = Math.round(t.amount)
+      const floorShare = Math.floor(totalInt / beneficiaries.length)
+      const remainder = totalInt % beneficiaries.length
+      beneficiaries.forEach((beneficiary, idx) => {
+        const share = idx < remainder ? floorShare + 1 : floorShare
+        owes[beneficiary] = (owes[beneficiary] || 0) + share
       })
     })
 
@@ -93,35 +98,21 @@ export function EndJourneyScreen({
       netBalance[member] = paid[member] - owes[member]
     })
 
-    // Round each person's net balance to nearest 10 (ones place = 0)
-    // so that settlement amounts are clean integers and sum correctly per creditor
-    const roundedBalance: Record<string, number> = {}
-    members.forEach((member) => {
-      roundedBalance[member] = Math.round(netBalance[member] / 10) * 10
-    })
-
-    // Fix any rounding discrepancy so credits and debits still cancel out
-    const discrepancy = members.reduce((sum, m) => sum + roundedBalance[m], 0)
-    if (discrepancy !== 0) {
-      const adjustMember = members.reduce((a, b) =>
-        Math.abs(roundedBalance[a]) >= Math.abs(roundedBalance[b]) ? a : b
-      )
-      roundedBalance[adjustMember] -= discrepancy
-    }
-
-    // Simplify debts using rounded balances
+    // Simplify debts using exact integer net balances
+    // (no nearest-10 rounding here — that would lose rupees and break payer totals)
     const settlements: Balance[] = []
-    const creditors = members.filter((m) => roundedBalance[m] > 0).sort((a, b) => roundedBalance[b] - roundedBalance[a])
-    const debtors = members.filter((m) => roundedBalance[m] < 0).sort((a, b) => roundedBalance[a] - roundedBalance[b])
+    const creditors = members.filter((m) => netBalance[m] > 0).sort((a, b) => netBalance[b] - netBalance[a])
+    const debtors = members.filter((m) => netBalance[m] < 0).sort((a, b) => netBalance[a] - netBalance[b])
 
+    const workingBalance = { ...netBalance }
     let i = 0
     let j = 0
 
     while (i < creditors.length && j < debtors.length) {
       const creditor = creditors[i]
       const debtor = debtors[j]
-      const credit = roundedBalance[creditor]
-      const debt = -roundedBalance[debtor]
+      const credit = workingBalance[creditor]
+      const debt = -workingBalance[debtor]
       const amount = Math.min(credit, debt)
 
       if (amount > 0) {
@@ -132,11 +123,11 @@ export function EndJourneyScreen({
         })
       }
 
-      roundedBalance[creditor] -= amount
-      roundedBalance[debtor] += amount
+      workingBalance[creditor] -= amount
+      workingBalance[debtor] += amount
 
-      if (roundedBalance[creditor] <= 0) i++
-      if (roundedBalance[debtor] >= 0) j++
+      if (workingBalance[creditor] <= 0) i++
+      if (workingBalance[debtor] >= 0) j++
     }
 
     return settlements
