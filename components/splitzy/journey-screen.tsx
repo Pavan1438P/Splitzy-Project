@@ -80,11 +80,11 @@ export function JourneyScreen({
   const handleShare = (invitePermission: "edit" | "view") => {
     const baseUrl = getShareBaseUrl()
     const shareUrl = `${baseUrl}?group=${groupId}&perm=${invitePermission === "edit" ? "editor" : "viewer"}`
-    const shareText = `Join my Splitzy group!\n\n${shareUrl}\n\nPermission: ${invitePermission === "edit" ? "Can Edit Transactions" : "View Only"}`
+    const shareText = `Join my GhostSplits group!\n\n${shareUrl}\n\nPermission: ${invitePermission === "edit" ? "Can Edit Transactions" : "View Only"}`
 
     if (navigator.share) {
       navigator.share({
-        title: "Splitzy Group Invite",
+        title: "GhostSplits Group Invite",
         text: shareText,
         url: shareUrl,
       })
@@ -108,6 +108,12 @@ export function JourneyScreen({
   const handleMakeTransaction = () => {
     if (!selectedPayer || !amount || !onWhom || !description) return
 
+    const parsedAmount = parseFloat(amount)
+    if (isNaN(parsedAmount) || parsedAmount <= 0 || parsedAmount > 1_000_000) {
+      alert("Amount must be between ₹1 and ₹10,00,000.")
+      return
+    }
+
     const trimmedOnWhom = onWhom.trim()
     const beneficiaries = parseBeneficiaries(trimmedOnWhom)
 
@@ -126,7 +132,7 @@ export function JourneyScreen({
 
     onAddTransaction({
       payer: selectedPayer,
-      amount: parseFloat(amount),
+      amount: parsedAmount,
       onWhom: trimmedOnWhom,
       description,
       status: "active",
@@ -231,6 +237,8 @@ export function JourneyScreen({
               value={amount}
               onChange={(event) => setAmount(event.target.value)}
               placeholder="Amount"
+              min="1"
+              max="1000000"
               disabled={!canEdit}
             />
 
@@ -238,6 +246,7 @@ export function JourneyScreen({
               value={onWhom}
               onChange={(event) => setOnWhom(event.target.value)}
               placeholder="On whom? (e.g. Everyone or A, B, C)"
+              maxLength={200}
               disabled={!canEdit}
             />
 
@@ -245,6 +254,7 @@ export function JourneyScreen({
               value={description}
               onChange={(event) => setDescription(event.target.value)}
               placeholder="Description"
+              maxLength={150}
               disabled={!canEdit}
             />
 
@@ -283,7 +293,7 @@ export function JourneyScreen({
           <DialogHeader>
             <DialogTitle>Active Transactions</DialogTitle>
             <DialogDescription>
-              Use Suggest Split to preview how amounts are divided. If an amount has decimals, Splitzy converts it into clean integer shares.
+              Use Suggest Split to preview how amounts are divided. If an amount has decimals, GhostSplits converts it into clean integer shares.
             </DialogDescription>
           </DialogHeader>
 

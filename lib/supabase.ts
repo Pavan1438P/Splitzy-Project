@@ -50,8 +50,6 @@ export async function saveGroupData(groupData: GroupData): Promise<void> {
 
     if (error) {
       console.error('Error saving group:', error.message)
-    } else {
-      console.log('Group saved successfully:', groupData.id)
     }
   } catch (err) {
     console.error('Save group exception:', err)

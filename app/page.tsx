@@ -145,7 +145,7 @@ export default function Home() {
   }
 
   const handleGroupCreated = async (memberNames: string[]) => {
-    const uniqueId = `SPLITZY-${Date.now().toString(36).toUpperCase()}-${Math.random()
+    const uniqueId = `GHOST-${Date.now().toString(36).toUpperCase()}-${Math.random()
       .toString(36)
       .substring(2, 6)
       .toUpperCase()}`
@@ -229,7 +229,7 @@ export default function Home() {
         <div className="flex min-h-screen items-center justify-center">
           <div className="text-center">
             <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
-            <p className="text-sm text-muted-foreground">Loading Splitzy...</p>
+            <p className="text-sm text-muted-foreground">Loading GhostSplits...</p>
           </div>
         </div>
       ) : isSharedLink && sharedLoading ? (

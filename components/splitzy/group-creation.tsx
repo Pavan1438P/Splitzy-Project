@@ -156,6 +156,7 @@ export function GroupCreation({ onGroupCreated, onBack }: GroupCreationProps) {
                       type="text"
                       placeholder={`Enter name for Member ${index + 1}`}
                       value={name}
+                      maxLength={30}
                       onChange={(e) => handleNameChange(index, e.target.value)}
                     />
                     {errors.names?.[index] && (

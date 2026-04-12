@@ -1,5 +1,6 @@
 "use client"
 
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Users } from "lucide-react"
 
@@ -11,12 +12,32 @@ export function WelcomeScreen({ onCreateGroup }: WelcomeScreenProps) {
   return (
     <div className="flex min-h-screen flex-col">
       <div className="flex flex-1 flex-col items-center justify-center px-4 text-center">
-        <div className="mb-8 flex items-center justify-center rounded-full bg-primary/10 p-6">
-          <Users className="h-16 w-16 text-primary" />
+        {/* Logo: drop your logo file at public/logo.png (or .svg) to replace this icon */}
+        <div className="mb-8 flex items-center justify-center">
+          <Image
+            src="/logo.png"
+            alt="GhostSplits logo"
+            width={120}
+            height={120}
+            priority
+            className="object-contain"
+            onError={(e) => {
+              // Fallback: hide broken image so the icon below shows
+              ;(e.currentTarget as HTMLImageElement).style.display = "none"
+              const fallback = e.currentTarget.nextElementSibling as HTMLElement | null
+              if (fallback) fallback.style.display = "flex"
+            }}
+          />
+          <div
+            className="hidden items-center justify-center rounded-full bg-primary/10 p-6"
+            aria-hidden="true"
+          >
+            <Users className="h-16 w-16 text-primary" />
+          </div>
         </div>
         
         <h1 className="mb-4 text-balance text-4xl font-bold tracking-tight text-foreground md:text-5xl lg:text-6xl">
-          Welcome to Splitzy
+          Welcome to GhostSplits
         </h1>
         
         <p className="mb-2 max-w-2xl text-balance text-xl text-foreground/80 md:text-2xl">
