@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import Image from 'next/image'
 import { WelcomeScreen } from '@/components/splitzy/welcome-screen'
 import { GroupCreation } from '@/components/splitzy/group-creation'
@@ -53,10 +53,84 @@ export default function Home() {
   const [sharedLoading, setSharedLoading] = useState(false)
   const [sharedLoadError, setSharedLoadError] = useState<string | null>(null)
   const subscriptionCleanup = useRef<(() => void) | null>(null)
+  const restoredFromStorage = useRef(false)
 
+  const LOCAL_STORAGE_KEY = 'ghostsplits_session'
+
+  const clearLocalSession = useCallback(() => {
+    try {
+      localStorage.removeItem(LOCAL_STORAGE_KEY)
+    } catch { /* ignore */ }
+  }, [LOCAL_STORAGE_KEY])
+
+  // Restore session from localStorage on first client render
   useEffect(() => {
     setIsClient(true)
+
+    const urlParams = new URLSearchParams(window.location.search)
+    if (urlParams.get('group')) return // shared link takes priority
+
+    try {
+      const saved = localStorage.getItem(LOCAL_STORAGE_KEY)
+      if (!saved) return
+      const session = JSON.parse(saved)
+      if (!session.groupId || !session.appState || session.appState === 'welcome') return
+
+      setGroupId(session.groupId)
+      setMembers(session.members ?? [])
+      setCreator(session.creator ?? '')
+      setPermission(session.permission ?? 'creator')
+      setTransactions(
+        (session.transactions ?? []).map((t: Transaction) => ({
+          ...t,
+          timestamp: new Date(t.timestamp),
+          status: t.status ?? 'active',
+        })),
+      )
+      setAppState(session.appState)
+      restoredFromStorage.current = true
+
+      // Re-subscribe to Supabase for real-time updates
+      if (subscriptionCleanup.current) {
+        subscriptionCleanup.current()
+      }
+      subscriptionCleanup.current = subscribeToGroup(session.groupId, (updatedData) => {
+        if (!updatedData) return
+        setMembers(updatedData.members)
+        setTransactions(
+          updatedData.transactions.map((transaction) => ({
+            ...transaction,
+            timestamp: new Date(transaction.timestamp),
+            status: transaction.status ?? 'active',
+          })),
+        )
+      })
+    } catch { /* corrupted data — ignore */ }
   }, [])
+
+  // Auto-save session to localStorage whenever key state changes
+  useEffect(() => {
+    if (!isClient) return
+    if (isSharedLink) return // don't persist shared sessions
+
+    if (appState === 'welcome' || appState === 'createGroup') {
+      clearLocalSession()
+      return
+    }
+
+    try {
+      const session = {
+        appState,
+        groupId,
+        members,
+        transactions,
+        creator,
+        permission,
+        savedAt: new Date().toISOString(),
+      }
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(session))
+    } catch { /* storage full or unavailable — ignore */ }
+  }, [isClient, isSharedLink, appState, groupId, members, transactions, creator, permission, clearLocalSession])
 
   useEffect(() => {
     if (!isClient) return
@@ -218,6 +292,8 @@ export default function Home() {
     setCreator('')
     setPermission('creator')
     setAppState('welcome')
+
+    clearLocalSession()
 
     if (currentGroupId) {
       await deleteGroupData(currentGroupId)

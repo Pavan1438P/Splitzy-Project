@@ -3,7 +3,6 @@
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Users } from "lucide-react"
-import { SupportDeveloper } from "./support-developer"
 
 interface WelcomeScreenProps {
   onCreateGroup: () => void
@@ -48,8 +47,6 @@ export function WelcomeScreen({ onCreateGroup }: WelcomeScreenProps) {
           Track who paid what, and see exactly who owes whom at the end of your trip, dinner, or any shared expense.
         </p>
 
-        <SupportDeveloper variant="card" />
-        
         <Button 
           size="lg" 
           onClick={onCreateGroup}

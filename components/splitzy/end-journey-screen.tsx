@@ -15,7 +15,6 @@ import { AlertCircle, ArrowRight, CheckCircle2 } from "lucide-react"
 import Image from "next/image"
 import type { Transaction } from "@/app/page"
 import { formatCurrency } from "@/lib/currency"
-import { SupportDeveloper } from "./support-developer"
 
 interface EndJourneyScreenProps {
   transactions: Transaction[]
@@ -253,9 +252,6 @@ export function EndJourneyScreen({
             )}
           </CardContent>
         </Card>
-
-        {/* Support Developer Section */}
-        <SupportDeveloper variant="card" />
 
         {/* Done Splitting Button */}
         {canEndJourney && !isViewOnly && (
