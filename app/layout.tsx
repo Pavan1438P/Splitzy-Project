@@ -11,10 +11,10 @@ export const metadata: Metadata = {
   description: 'Split expenses with friends easily with realtime updates and no login required.',
   icons: {
     icon: [
-      { url: '/logo.png' },
-      { url: '/icon.svg', type: 'image/svg+xml' },
+      { url: '/favicon.png' },
+      { url: '/GhostSplits_LOGO.svg', type: 'image/svg+xml' },
     ],
-    apple: '/logo.png',
+    apple: '/apple-touch-icon.png',
   },
 }
 

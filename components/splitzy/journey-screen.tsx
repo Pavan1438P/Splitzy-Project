@@ -21,6 +21,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Check, Copy, Eye, Flag, Share2, Zap } from "lucide-react"
+import Image from "next/image"
 import type { Transaction } from "@/app/page"
 import { formatCurrency, hasDecimal, suggestEqualSplits } from "@/lib/currency"
 
@@ -180,6 +181,10 @@ export function JourneyScreen({
   return (
     <div className="min-h-screen px-4 py-8">
       <div className="mx-auto max-w-2xl space-y-6">
+        <div className="flex items-center justify-center gap-2 mb-2">
+          <Image src="/GhostSplits_LOGO.png" alt="GhostSplits" width={36} height={36} className="object-contain" />
+          <span className="text-lg font-bold tracking-tight text-foreground">GhostSplits</span>
+        </div>
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">Your Group Link</CardTitle>

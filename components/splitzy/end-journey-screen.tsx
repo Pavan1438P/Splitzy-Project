@@ -12,6 +12,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { AlertCircle, ArrowRight, CheckCircle2 } from "lucide-react"
+import Image from "next/image"
 import type { Transaction } from "@/app/page"
 import { formatCurrency } from "@/lib/currency"
 
@@ -138,6 +139,10 @@ export function EndJourneyScreen({
   return (
     <div className="min-h-screen px-4 py-8">
       <div className="mx-auto max-w-2xl space-y-6">
+        <div className="flex items-center justify-center gap-2 mb-2">
+          <Image src="/GhostSplits_LOGO.png" alt="GhostSplits" width={36} height={36} className="object-contain" />
+          <span className="text-lg font-bold tracking-tight text-foreground">GhostSplits</span>
+        </div>
         <Card>
           <CardHeader className="text-center">
             <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">

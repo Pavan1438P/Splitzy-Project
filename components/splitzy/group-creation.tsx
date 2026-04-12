@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { ArrowLeft, Users, AlertCircle } from "lucide-react"
+import Image from "next/image"
 
 interface GroupCreationProps {
   onGroupCreated: (members: string[]) => void
@@ -94,8 +95,8 @@ export function GroupCreation({ onGroupCreated, onBack }: GroupCreationProps) {
 
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
-            <Users className="h-6 w-6 text-primary" />
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center">
+            <Image src="/GhostSplits_LOGO.png" alt="GhostSplits" width={48} height={48} className="object-contain" />
           </div>
           <CardTitle className="text-2xl">
             {step === "count" ? "Create Your Group" : "Name Your Members"}

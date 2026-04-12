@@ -12,10 +12,9 @@ export function WelcomeScreen({ onCreateGroup }: WelcomeScreenProps) {
   return (
     <div className="flex min-h-screen flex-col">
       <div className="flex flex-1 flex-col items-center justify-center px-4 text-center">
-        {/* Logo: drop your logo file at public/logo.png (or .svg) to replace this icon */}
         <div className="mb-8 flex items-center justify-center">
           <Image
-            src="/logo.png"
+            src="/GhostSplits_LOGO.png"
             alt="GhostSplits logo"
             width={120}
             height={120}

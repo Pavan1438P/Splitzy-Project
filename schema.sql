@@ -1,4 +1,13 @@
 -- Supabase schema for GhostSplits expense groups
+-- Safe to re-run: drops existing objects first
+
+-- Drop existing objects
+drop trigger if exists groups_updated_at on groups;
+drop function if exists set_group_updated_at();
+drop policy if exists "anon_select" on groups;
+drop policy if exists "anon_insert" on groups;
+drop policy if exists "anon_update" on groups;
+drop policy if exists "anon_delete" on groups;
 
 create table if not exists groups (
   id text primary key,
@@ -7,7 +16,6 @@ create table if not exists groups (
   transactions jsonb not null default '[]',
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
-  -- Guard against oversized payloads
   constraint members_max_size check (jsonb_array_length(members) <= 50)
 );
 
