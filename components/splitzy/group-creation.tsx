@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Label } from "@/components/ui/label"
 import { ArrowLeft, Users, AlertCircle } from "lucide-react"
 import Image from "next/image"
+import { DataLossConfirmationDialog } from "@/components/data-loss-confirmation-dialog"
 
 interface GroupCreationProps {
   onGroupCreated: (members: string[]) => void
@@ -18,6 +19,7 @@ export function GroupCreation({ onGroupCreated, onBack }: GroupCreationProps) {
   const [memberCount, setMemberCount] = useState<string>("")
   const [memberNames, setMemberNames] = useState<string[]>([])
   const [errors, setErrors] = useState<{ count?: string; names?: string[]; duplicate?: string }>({})
+  const [showDataLossWarning, setShowDataLossWarning] = useState(false)
 
   useEffect(() => {
     if (step === "names" && memberCount) {
@@ -80,6 +82,30 @@ export function GroupCreation({ onGroupCreated, onBack }: GroupCreationProps) {
     onGroupCreated(memberNames.map((n) => n.trim()))
   }
 
+  const hasUnsavedData = memberCount !== "" || memberNames.some((name) => name.trim() !== "")
+
+  const handleBackClick = () => {
+    if (hasUnsavedData && step === "names") {
+      setShowDataLossWarning(true)
+    } else if (step === "count") {
+      onBack()
+    } else {handleBackClick}
+      >
+        <ArrowLeft className="mr-2 h-4 w-4" />
+        Back
+      </Button>
+
+      <DataLossConfirmationDialog
+        isOpen={showDataLossWarning}
+        onConfirm={confirmDataLoss}
+        onCancel={() => setShowDataLossWarning(false)}
+        title="Discard Member List?"
+        description="You have entered member names. Since GhostSplits doesn't use login, your data won't be saved. Are you sure you want to go back and discard these changes?"
+      /
+  const confirmDataLoss = () => {
+    setShowDataLossWarning(false)
+    onBack()
+  }
   const allNamesFilled = memberNames.every((name) => name.trim() !== "")
 
   return (

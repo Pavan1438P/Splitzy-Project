@@ -24,6 +24,7 @@ import { Check, Copy, Eye, Flag, Share2, Zap } from "lucide-react"
 import Image from "next/image"
 import type { Transaction } from "@/app/page"
 import { formatCurrency, hasDecimal, suggestEqualSplits } from "@/lib/currency"
+import { DataLossConfirmationDialog } from "@/components/data-loss-confirmation-dialog"
 
 interface JourneyScreenProps {
   groupId: string
@@ -55,6 +56,7 @@ export function JourneyScreen({
   const [transactionsDialogOpen, setTransactionsDialogOpen] = useState(false)
   const [suggestedSplits, setSuggestedSplits] = useState<Record<string, number[]>>({})
   const [selectedForSplit, setSelectedForSplit] = useState<string | null>(null)
+  const [showDataLossWarning, setShowDataLossWarning] = useState(false)
 
   const activeTransactions = useMemo(
     () => transactions.filter((transaction) => transaction.status !== "completed"),
@@ -175,7 +177,28 @@ export function JourneyScreen({
     setSelectedForSplit(null)
   }
 
-  const isFormValid = !!selectedPayer && !!onWhom && !!description && !!amount && parseFloat(amount) > 0
+  const isFormValid = !!selectedPayer && !!onWhom && !!description &&
+
+  const handleEndJourneyClick = () => {
+    if (activeTransactions.length > 0) {
+      setShowDataLossWarning(true)
+    } else {
+      onEndJourney()
+    }
+  }
+
+
+        <DataLossConfirmationDialog
+          isOpen={showDataLossWarning}
+          onConfirm={confirmEndJourney}
+          onCancel={() => setShowDataLossWarning(false)}
+          title="End Journey?"
+          description="You have unsaved transactions. Since GhostSplits doesn't use login, your data won't be saved if you exit now. Are you sure you want to end the journey without saving?"
+        />
+  const confirmEndJourney = () => {
+    setShowDataLossWarning(false)
+    onEndJourney()
+  } !!amount && parseFloat(amount) > 0
   const canEdit = permission === "creator" || permission === "editor"
 
   return (
@@ -271,7 +294,7 @@ export function JourneyScreen({
                 <Eye className="mr-2 h-4 w-4" />
                 View Transactions ({activeTransactions.length})
               </Button>
-              <Button variant="secondary" onClick={onEndJourney} disabled={!canEndJourney}>
+              <Button variant="secondary" onClick={handleEndJourneyClick} disabled={!canEndJourney}>
                 <Flag className="mr-2 h-4 w-4" />
                 End Journey
               </Button>
