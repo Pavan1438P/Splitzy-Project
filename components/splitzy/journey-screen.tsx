@@ -13,6 +13,12 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
+import { Checkbox } from "@/components/ui/checkbox"
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -20,7 +26,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { Check, Copy, Eye, Flag, Share2, Zap } from "lucide-react"
+import { Check, ChevronDown, Copy, Eye, Flag, Share2, Zap } from "lucide-react"
 import Image from "next/image"
 import type { Transaction } from "@/app/page"
 import { formatCurrency, hasDecimal, suggestEqualSplits } from "@/lib/currency"
@@ -49,7 +55,7 @@ export function JourneyScreen({
 }: JourneyScreenProps) {
   const [selectedPayer, setSelectedPayer] = useState("")
   const [amount, setAmount] = useState("")
-  const [onWhom, setOnWhom] = useState("")
+  const [selectedMembers, setSelectedMembers] = useState<string[]>([])
   const [description, setDescription] = useState("")
   const [copied, setCopied] = useState(false)
   const [shareDialogOpen, setShareDialogOpen] = useState(false)
@@ -106,8 +112,21 @@ export function JourneyScreen({
       .filter(Boolean)
   }
 
+  const isEveryone = selectedMembers.length === members.length
+  const onWhomDisplay = isEveryone ? "Everyone" : selectedMembers.join(", ")
+
+  const toggleMember = (member: string) => {
+    setSelectedMembers((prev) =>
+      prev.includes(member) ? prev.filter((m) => m !== member) : [...prev, member],
+    )
+  }
+
+  const toggleEveryone = () => {
+    setSelectedMembers((prev) => (prev.length === members.length ? [] : [...members]))
+  }
+
   const handleMakeTransaction = () => {
-    if (!selectedPayer || !amount || !onWhom || !description) return
+    if (!selectedPayer || !amount || selectedMembers.length === 0 || !description) return
 
     const trimmedAmount = amount.trim()
     if (!/^\d+(\.\d{1,2})?$/.test(trimmedAmount)) {
@@ -121,33 +140,19 @@ export function JourneyScreen({
       return
     }
 
-    const trimmedOnWhom = onWhom.trim()
-    const beneficiaries = parseBeneficiaries(trimmedOnWhom)
-
-    if (beneficiaries.length === 0) {
-      alert("Please enter at least one valid member name or Everyone.")
-      return
-    }
-
-    const invalidNames = beneficiaries.filter(
-      (name) => !members.some((member) => member.toLowerCase() === name.toLowerCase()),
-    )
-    if (trimmedOnWhom.toLowerCase() !== "everyone" && invalidNames.length > 0) {
-      alert(`Invalid member names: ${invalidNames.join(", ")}. Please use names from your group.`)
-      return
-    }
+    const onWhomValue = isEveryone ? "Everyone" : selectedMembers.join(", ")
 
     onAddTransaction({
       payer: selectedPayer,
       amount: parsedAmount,
-      onWhom: trimmedOnWhom,
+      onWhom: onWhomValue,
       description: description.trim(),
       status: "active",
     })
 
     setSelectedPayer("")
     setAmount("")
-    setOnWhom("")
+    setSelectedMembers([])
     setDescription("")
   }
 
@@ -181,7 +186,7 @@ export function JourneyScreen({
     setSelectedForSplit(null)
   }
 
-  const isFormValid = !!selectedPayer && !!onWhom && !!description && !!amount && parseFloat(amount) > 0
+  const isFormValid = !!selectedPayer && selectedMembers.length > 0 && !!description && !!amount && parseFloat(amount) > 0
   const canEdit = permission === "creator" || permission === "editor"
 
   // Warn users when they try to close/refresh the tab with active transactions
@@ -264,13 +269,44 @@ export function JourneyScreen({
               disabled={!canEdit}
             />
 
-            <Input
-              value={onWhom}
-              onChange={(event) => setOnWhom(event.target.value)}
-              placeholder="On whom? (e.g. Everyone or A, B, C)"
-              maxLength={200}
-              disabled={!canEdit}
-            />
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="w-full justify-between font-normal"
+                  disabled={!canEdit}
+                >
+                  <span className={selectedMembers.length === 0 ? "text-muted-foreground" : ""}>
+                    {selectedMembers.length === 0
+                      ? "On whom?"
+                      : isEveryone
+                        ? "Everyone"
+                        : `${selectedMembers.length} selected`}
+                  </span>
+                  <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-2" align="start">
+                <div
+                  className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 hover:bg-accent"
+                  onClick={toggleEveryone}
+                >
+                  <Checkbox checked={selectedMembers.length === members.length} />
+                  <span className="text-sm font-medium">Everyone</span>
+                </div>
+                <div className="my-1 h-px bg-border" />
+                {members.map((member) => (
+                  <div
+                    key={member}
+                    className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 hover:bg-accent"
+                    onClick={() => toggleMember(member)}
+                  >
+                    <Checkbox checked={selectedMembers.includes(member)} />
+                    <span className="text-sm">{member}</span>
+                  </div>
+                ))}
+              </PopoverContent>
+            </Popover>
 
             <Textarea
               value={description}
