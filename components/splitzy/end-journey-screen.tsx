@@ -15,6 +15,7 @@ import { AlertCircle, ArrowRight, CheckCircle2 } from "lucide-react"
 import Image from "next/image"
 import type { Transaction } from "@/app/page"
 import { formatCurrency } from "@/lib/currency"
+import { SupportDeveloper } from "./support-developer"
 
 interface EndJourneyScreenProps {
   transactions: Transaction[]
@@ -253,6 +254,9 @@ export function EndJourneyScreen({
           </CardContent>
         </Card>
 
+        {/* Support Developer Section */}
+        <SupportDeveloper variant="card" />
+
         {/* Done Splitting Button */}
         {canEndJourney && !isViewOnly && (
           <Button
@@ -271,6 +275,35 @@ export function EndJourneyScreen({
             </p>
           </div>
         )}
+
+        {/* Contact & Feedback Footer */}
+        <div className="border-t bg-card py-8 text-center mt-8">
+          <div className="mb-4">
+            <div className="flex flex-col items-center justify-center gap-4 text-sm">
+              <div>
+                <p className="font-semibold text-foreground mb-2">Contact & Feedback</p>
+                <div className="flex flex-col gap-2">
+                  <a 
+                    href="mailto:ghostsplits@gmail.com" 
+                    className="text-primary hover:underline transition-colors"
+                    aria-label="Email us at ghostsplits@gmail.com"
+                  >
+                    Gmail: ghostsplits@gmail.com
+                  </a>
+                  <a 
+                    href="https://www.instagram.com/ghostsplits?igsh=MXBlaHo4Ym8xN2pwMw==&utm_source=ig_contact_invite" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-primary hover:underline transition-colors"
+                    aria-label="Follow us on Instagram"
+                  >
+                    Instagram: @ghostsplits
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Confirmation Dialog */}
