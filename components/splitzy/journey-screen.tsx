@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -24,7 +24,7 @@ import { Check, Copy, Eye, Flag, Share2, Zap } from "lucide-react"
 import Image from "next/image"
 import type { Transaction } from "@/app/page"
 import { formatCurrency, hasDecimal, suggestEqualSplits } from "@/lib/currency"
-import { DataLossConfirmationDialog } from "@/components/data-loss-confirmation-dialog"
+
 
 interface JourneyScreenProps {
   groupId: string
@@ -56,8 +56,6 @@ export function JourneyScreen({
   const [transactionsDialogOpen, setTransactionsDialogOpen] = useState(false)
   const [suggestedSplits, setSuggestedSplits] = useState<Record<string, number[]>>({})
   const [selectedForSplit, setSelectedForSplit] = useState<string | null>(null)
-  const [showDataLossWarning, setShowDataLossWarning] = useState(false)
-
   const activeTransactions = useMemo(
     () => transactions.filter((transaction) => transaction.status !== "completed"),
     [transactions],
@@ -180,18 +178,16 @@ export function JourneyScreen({
   const isFormValid = !!selectedPayer && !!onWhom && !!description && !!amount && parseFloat(amount) > 0
   const canEdit = permission === "creator" || permission === "editor"
 
-  const handleEndJourneyClick = () => {
-    if (activeTransactions.length > 0) {
-      setShowDataLossWarning(true)
-    } else {
-      onEndJourney()
+  // Warn users when they try to close/refresh the tab with active transactions
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (activeTransactions.length > 0) {
+        e.preventDefault()
+      }
     }
-  }
-
-  const confirmEndJourney = () => {
-    setShowDataLossWarning(false)
-    onEndJourney()
-  }
+    window.addEventListener("beforeunload", handleBeforeUnload)
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload)
+  }, [activeTransactions.length])
 
   return (
     <div className="min-h-screen px-4 py-8">
@@ -286,7 +282,7 @@ export function JourneyScreen({
                 <Eye className="mr-2 h-4 w-4" />
                 View Transactions ({activeTransactions.length})
               </Button>
-              <Button variant="secondary" onClick={handleEndJourneyClick} disabled={!canEndJourney}>
+              <Button variant="secondary" onClick={onEndJourney} disabled={!canEndJourney}>
                 <Flag className="mr-2 h-4 w-4" />
                 End Journey
               </Button>
@@ -425,13 +421,6 @@ export function JourneyScreen({
         </DialogContent>
       </Dialog>
 
-      <DataLossConfirmationDialog
-        isOpen={showDataLossWarning}
-        onConfirm={confirmEndJourney}
-        onCancel={() => setShowDataLossWarning(false)}
-        title="End Journey?"
-        description="You have unsaved transactions. Since GhostSplits doesn't use login, your data won't be saved if you exit now. Are you sure you want to end the journey without saving?"
-      />
     </div>
   )
 }
