@@ -1,4 +1,4 @@
-# Splitzy - Expense Splitter App
+# GhostSplits - Expense Splitter App
 
 A modern expense splitting app built with Next.js, TypeScript, and Tailwind CSS.
 Here is the website link:- https://splitzy-project.vercel.app/
