@@ -83,7 +83,7 @@ export function SupportDeveloper({ variant = "button" }: SupportDeveloperProps) 
               You can buy a chocolate for developer
             </DialogTitle>
             <DialogDescription className="text-center">
-              Scan the QR code or use UPI ID: {UPI_ID}
+              Scan the QR code to pay
             </DialogDescription>
           </DialogHeader>
           
@@ -99,14 +99,6 @@ export function SupportDeveloper({ variant = "button" }: SupportDeveloperProps) 
                 level="H"
                 includeMargin={true}
               />
-            </div>
-
-            {/* UPI ID Display */}
-            <div className="w-full rounded-lg bg-muted p-3 text-center">
-              <p className="text-xs text-muted-foreground mb-1">UPI ID</p>
-              <p className="font-mono font-semibold text-foreground break-all">
-                {UPI_ID}
-              </p>
             </div>
 
             {/* Action Buttons */}
