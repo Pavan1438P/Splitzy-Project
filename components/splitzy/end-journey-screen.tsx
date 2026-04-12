@@ -93,10 +93,26 @@ export function EndJourneyScreen({
       netBalance[member] = paid[member] - owes[member]
     })
 
-    // Simplify debts
+    // Round each person's net balance to nearest 10 (ones place = 0)
+    // so that settlement amounts are clean integers and sum correctly per creditor
+    const roundedBalance: Record<string, number> = {}
+    members.forEach((member) => {
+      roundedBalance[member] = Math.round(netBalance[member] / 10) * 10
+    })
+
+    // Fix any rounding discrepancy so credits and debits still cancel out
+    const discrepancy = members.reduce((sum, m) => sum + roundedBalance[m], 0)
+    if (discrepancy !== 0) {
+      const adjustMember = members.reduce((a, b) =>
+        Math.abs(roundedBalance[a]) >= Math.abs(roundedBalance[b]) ? a : b
+      )
+      roundedBalance[adjustMember] -= discrepancy
+    }
+
+    // Simplify debts using rounded balances
     const settlements: Balance[] = []
-    const creditors = members.filter((m) => netBalance[m] > 0.01).sort((a, b) => netBalance[b] - netBalance[a])
-    const debtors = members.filter((m) => netBalance[m] < -0.01).sort((a, b) => netBalance[a] - netBalance[b])
+    const creditors = members.filter((m) => roundedBalance[m] > 0).sort((a, b) => roundedBalance[b] - roundedBalance[a])
+    const debtors = members.filter((m) => roundedBalance[m] < 0).sort((a, b) => roundedBalance[a] - roundedBalance[b])
 
     let i = 0
     let j = 0
@@ -104,24 +120,23 @@ export function EndJourneyScreen({
     while (i < creditors.length && j < debtors.length) {
       const creditor = creditors[i]
       const debtor = debtors[j]
-      const credit = netBalance[creditor]
-      const debt = -netBalance[debtor]
+      const credit = roundedBalance[creditor]
+      const debt = -roundedBalance[debtor]
       const amount = Math.min(credit, debt)
 
-      const roundedAmount = Math.round(amount / 10) * 10
-      if (roundedAmount > 0) {
+      if (amount > 0) {
         settlements.push({
           from: debtor,
           to: creditor,
-          amount: roundedAmount,
+          amount,
         })
       }
 
-      netBalance[creditor] -= amount
-      netBalance[debtor] += amount
+      roundedBalance[creditor] -= amount
+      roundedBalance[debtor] += amount
 
-      if (netBalance[creditor] < 0.01) i++
-      if (netBalance[debtor] > -0.01) j++
+      if (roundedBalance[creditor] <= 0) i++
+      if (roundedBalance[debtor] >= 0) j++
     }
 
     return settlements
