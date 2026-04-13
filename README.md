@@ -2,6 +2,8 @@
 
 A modern expense splitting app built with Next.js, TypeScript, and Tailwind CSS.
 Here is the website link:- https://ghostsplits.vercel.app/
+I bought Domain for this on 12 April 2026, It will work up to 12 April 2027 (1 year)
+Here is the URL:- ghostsplits.com
 ## Features
 
 - ✅ Create groups and add members
