@@ -62,6 +62,7 @@ export function JourneyScreen({
   const [transactionsDialogOpen, setTransactionsDialogOpen] = useState(false)
   const [suggestedSplits, setSuggestedSplits] = useState<Record<string, number[]>>({})
   const [selectedForSplit, setSelectedForSplit] = useState<string | null>(null)
+  const [customSplitAmounts, setCustomSplitAmounts] = useState<Record<string, string>>({})
   const activeTransactions = useMemo(
     () => transactions.filter((transaction) => transaction.status !== "completed"),
     [transactions],
@@ -162,20 +163,7 @@ export function JourneyScreen({
     setSuggestedSplits((prev) => ({ ...prev, [transactionId]: suggested }))
   }
 
-  const handleInstantSplitDone = (transactionId: string, transaction: Transaction) => {
-    const beneficiaries = parseBeneficiaries(transaction.onWhom)
-    const suggested = suggestedSplits[transactionId] || suggestEqualSplits(transaction.amount, beneficiaries.length)
-
-    beneficiaries.forEach((beneficiary, index) => {
-      onAddTransaction({
-        payer: transaction.payer,
-        amount: suggested[index],
-        onWhom: beneficiary,
-        description: `${transaction.description} (split)`,
-        status: "active",
-      })
-    })
-
+  const handleInstantSplitDone = (transactionId: string, transaction: Transaction, customAmounts?: number[]) => {
     onCompleteTransaction?.(transactionId)
 
     setSuggestedSplits((prev) => {
@@ -183,6 +171,7 @@ export function JourneyScreen({
       delete next[transactionId]
       return next
     })
+    setCustomSplitAmounts({})
     setSelectedForSplit(null)
   }
 
@@ -417,7 +406,7 @@ export function JourneyScreen({
           <DialogHeader>
             <DialogTitle>Confirm Instant Split</DialogTitle>
             <DialogDescription>
-              Review each person's share. Clicking Done creates individual split transactions and marks the original transaction as completed.
+              Review each person's share. Clicking Done marks this transaction as completed. No new transactions are created.
             </DialogDescription>
           </DialogHeader>
 
@@ -429,18 +418,62 @@ export function JourneyScreen({
                 <p><strong>Total:</strong> {formatCurrency(selectedTransaction.amount)}</p>
               </div>
 
-              <div className="space-y-1 rounded border border-green-200 bg-green-50 p-3 text-sm">
-                {(suggestedSplits[selectedTransaction.id] ||
-                  suggestEqualSplits(selectedTransaction.amount, parseBeneficiaries(selectedTransaction.onWhom).length)).map(
-                  (splitAmount, index) => {
-                    const beneficiaries = parseBeneficiaries(selectedTransaction.onWhom)
-                    return (
-                      <p key={`${selectedTransaction.id}-confirm-${index}`} className="text-green-700">
-                        {beneficiaries[index]}: {formatCurrency(splitAmount)}
-                      </p>
-                    )
-                  },
-                )}
+              <div className="space-y-2">
+                <p className="text-sm font-medium">Edit split amounts:</p>
+                {(() => {
+                  const beneficiaries = parseBeneficiaries(selectedTransaction.onWhom)
+                  const suggested = suggestedSplits[selectedTransaction.id] ||
+                    suggestEqualSplits(selectedTransaction.amount, beneficiaries.length)
+
+                  const totalSplit = beneficiaries.reduce((sum, _, index) => {
+                    const value = customSplitAmounts[`${selectedTransaction.id}-${index}`]
+                    return sum + (value ? parseFloat(value) || 0 : suggested[index])
+                  }, 0)
+
+                  const isValid = Math.abs(totalSplit - selectedTransaction.amount) < 0.01
+
+                  return (
+                    <>
+                      <div className="space-y-2 rounded border border-green-200 bg-green-50 p-3">
+                        {beneficiaries.map((beneficiary, index) => {
+                          const inputKey = `${selectedTransaction.id}-${index}`
+                          const currentValue = customSplitAmounts[inputKey] ?? suggested[index].toString()
+
+                          return (
+                            <div key={inputKey} className="flex items-center gap-2">
+                              <span className="text-sm font-medium w-24 truncate">{beneficiary}:</span>
+                              <Input
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                value={currentValue}
+                                onChange={(e) => {
+                                  setCustomSplitAmounts((prev) => ({
+                                    ...prev,
+                                    [inputKey]: e.target.value,
+                                  }))
+                                }}
+                                className="h-8 w-24 text-sm"
+                              />
+                              <span className="text-xs text-muted-foreground">Rs</span>
+                            </div>
+                          )
+                        })}
+                      </div>
+
+                      <div className="flex items-center justify-between text-sm">
+                        <span className={isValid ? "text-green-600" : "text-destructive"}>
+                          Sum: {formatCurrency(totalSplit)}
+                        </span>
+                        {!isValid && (
+                          <span className="text-xs text-destructive">
+                            Must equal {formatCurrency(selectedTransaction.amount)}
+                          </span>
+                        )}
+                      </div>
+                    </>
+                  )
+                })()}
               </div>
             </div>
           )}
@@ -451,9 +484,27 @@ export function JourneyScreen({
             </Button>
             <Button
               className="bg-green-600 hover:bg-green-700"
+              disabled={(() => {
+                if (!selectedTransaction) return true
+                const beneficiaries = parseBeneficiaries(selectedTransaction.onWhom)
+                const suggested = suggestedSplits[selectedTransaction.id] ||
+                  suggestEqualSplits(selectedTransaction.amount, beneficiaries.length)
+                const totalSplit = beneficiaries.reduce((sum, _, index) => {
+                  const value = customSplitAmounts[`${selectedTransaction.id}-${index}`]
+                  return sum + (value ? parseFloat(value) || 0 : suggested[index])
+                }, 0)
+                return Math.abs(totalSplit - selectedTransaction.amount) >= 0.01
+              })()}
               onClick={() => {
                 if (selectedTransaction) {
-                  handleInstantSplitDone(selectedTransaction.id, selectedTransaction)
+                  const beneficiaries = parseBeneficiaries(selectedTransaction.onWhom)
+                  const suggested = suggestedSplits[selectedTransaction.id] ||
+                    suggestEqualSplits(selectedTransaction.amount, beneficiaries.length)
+                  const customAmounts = beneficiaries.map((_, index) => {
+                    const value = customSplitAmounts[`${selectedTransaction.id}-${index}`]
+                    return value ? parseFloat(value) || 0 : suggested[index]
+                  })
+                  handleInstantSplitDone(selectedTransaction.id, selectedTransaction, customAmounts)
                 }
               }}
             >
@@ -464,5 +515,4 @@ export function JourneyScreen({
       </Dialog>
 
     </div>
-  )
-}
+  )}
