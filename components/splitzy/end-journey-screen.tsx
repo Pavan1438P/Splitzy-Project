@@ -202,6 +202,19 @@ export function EndJourneyScreen({
                             <p className={`mt-1 text-sm ${ isCompleted ? "line-through text-muted-foreground" : "" }`}>
                               {transaction.description}
                             </p>
+                            {/* Show split details for completed transactions */}
+                            {isCompleted && transaction.splitDetails && transaction.splitDetails.length > 0 && (
+                              <div className="mt-2 rounded border border-green-200 bg-green-100/50 p-2 text-xs">
+                                <p className="font-medium text-green-800 mb-1">Split breakdown:</p>
+                                <div className="space-y-0.5">
+                                  {transaction.splitDetails.map((split, idx) => (
+                                    <p key={idx} className="text-green-700">
+                                      {split.beneficiary}: {formatCurrency(split.amount)}
+                                    </p>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
                           </div>
                           <p className={`font-semibold ${ isCompleted ? "text-green-700 line-through" : "text-primary" }`}>
                             {formatCurrency(transaction.amount)}

@@ -28,7 +28,7 @@ import {
 } from "@/components/ui/dialog"
 import { Check, ChevronDown, Copy, Eye, Flag, Share2, Zap } from "lucide-react"
 import Image from "next/image"
-import type { Transaction } from "@/app/page"
+import type { Transaction, SplitDetail } from "@/app/page"
 import { formatCurrency, hasDecimal, suggestEqualSplits } from "@/lib/currency"
 
 
@@ -37,7 +37,7 @@ interface JourneyScreenProps {
   members: string[]
   transactions: Transaction[]
   onAddTransaction: (transaction: Omit<Transaction, "id" | "timestamp">) => void
-  onCompleteTransaction?: (transactionId: string) => void
+  onCompleteTransaction?: (transactionId: string, splitDetails?: SplitDetail[]) => void
   onEndJourney: () => void
   permission?: "creator" | "editor" | "viewer"
   canEndJourney?: boolean
@@ -164,7 +164,13 @@ export function JourneyScreen({
   }
 
   const handleInstantSplitDone = (transactionId: string, transaction: Transaction, customAmounts?: number[]) => {
-    onCompleteTransaction?.(transactionId)
+    const beneficiaries = parseBeneficiaries(transaction.onWhom)
+    const splitDetails: SplitDetail[] = beneficiaries.map((beneficiary, index) => ({
+      beneficiary,
+      amount: customAmounts?.[index] ?? 0,
+    }))
+
+    onCompleteTransaction?.(transactionId, splitDetails)
 
     setSuggestedSplits((prev) => {
       const next = { ...prev }

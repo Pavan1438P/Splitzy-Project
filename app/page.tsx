@@ -13,6 +13,11 @@ import {
   subscribeToGroup,
 } from '@/lib/supabase'
 
+export type SplitDetail = {
+  beneficiary: string
+  amount: number
+}
+
 export type Transaction = {
   id: string
   payer: string
@@ -21,6 +26,7 @@ export type Transaction = {
   description: string
   timestamp: Date
   status?: "active" | "completed"
+  splitDetails?: SplitDetail[]
 }
 
 export type AppState =
@@ -279,11 +285,13 @@ export default function Home() {
     }
   }
 
-  const handleCompleteTransaction = async (transactionId: string) => {
+  const handleCompleteTransaction = async (transactionId: string, splitDetails?: SplitDetail[]) => {
     if (!groupId) return
 
     const updatedTransactions = transactions.map((transaction) =>
-      transaction.id === transactionId ? { ...transaction, status: "completed" as const } : transaction,
+      transaction.id === transactionId
+        ? { ...transaction, status: "completed" as const, splitDetails }
+        : transaction,
     )
 
     setTransactions(updatedTransactions)
