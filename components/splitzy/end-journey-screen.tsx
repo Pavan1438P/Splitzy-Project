@@ -11,10 +11,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { AlertCircle, ArrowRight, CheckCircle2 } from "lucide-react"
+import { AlertCircle, ArrowRight, CheckCircle2, Zap } from "lucide-react"
 import Image from "next/image"
-import type { Transaction } from "@/app/page"
-import { formatCurrency } from "@/lib/currency"
+import type { Transaction, SplitDetail } from "@/app/page"
+import { formatCurrency, suggestEqualSplits } from "@/lib/currency"
+import { Input } from "@/components/ui/input"
 
 interface EndJourneyScreenProps {
   transactions: Transaction[]
@@ -23,6 +24,8 @@ interface EndJourneyScreenProps {
   onDoneSplitting: () => void
   canEndJourney?: boolean
   isViewOnly?: boolean
+  onCompleteTransaction?: (transactionId: string, splitDetails?: SplitDetail[]) => void
+  permission?: "creator" | "editor" | "viewer"
 }
 
 type Balance = {
@@ -38,8 +41,15 @@ export function EndJourneyScreen({
   onDoneSplitting,
   canEndJourney = true,
   isViewOnly = false,
+  onCompleteTransaction,
+  permission = "creator",
 }: EndJourneyScreenProps) {
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false)
+  const [splitDialogOpen, setSplitDialogOpen] = useState(false)
+  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null)
+  const [customSplitAmounts, setCustomSplitAmounts] = useState<Record<string, string>>({})
+  
+  const canEdit = permission === "creator" || permission === "editor"
   const activeTransactions = useMemo(
     () => transactions.filter((transaction) => transaction.status !== "completed"),
     [transactions],
@@ -136,6 +146,42 @@ export function EndJourneyScreen({
 
   const totalSpent = activeTransactions.reduce((sum, t) => sum + t.amount, 0)
 
+  const parseBeneficiaries = (beneficiaryText: string): string[] => {
+    if (beneficiaryText.toLowerCase().trim() === "everyone") {
+      return members
+    }
+    return beneficiaryText
+      .split(",")
+      .map((name) => name.trim())
+      .filter(Boolean)
+  }
+
+  const handleSplitClick = (transaction: Transaction) => {
+    setSelectedTransaction(transaction)
+    setCustomSplitAmounts({})
+    setSplitDialogOpen(true)
+  }
+
+  const handleSplitDone = () => {
+    if (!selectedTransaction) return
+    
+    const beneficiaries = parseBeneficiaries(selectedTransaction.onWhom)
+    const suggested = suggestEqualSplits(selectedTransaction.amount, beneficiaries.length)
+    
+    const splitDetails: SplitDetail[] = beneficiaries.map((beneficiary, index) => ({
+      beneficiary,
+      amount: customSplitAmounts[`${selectedTransaction.id}-${index}`] 
+        ? parseFloat(customSplitAmounts[`${selectedTransaction.id}-${index}`]) || 0
+        : suggested[index],
+    }))
+    
+    onCompleteTransaction?.(selectedTransaction.id, splitDetails)
+    
+    setSplitDialogOpen(false)
+    setSelectedTransaction(null)
+    setCustomSplitAmounts({})
+  }
+
   return (
     <div className="min-h-screen px-4 py-8">
       <div className="mx-auto max-w-2xl space-y-6">
@@ -202,6 +248,18 @@ export function EndJourneyScreen({
                             <p className={`mt-1 text-sm ${ isCompleted ? "line-through text-muted-foreground" : "" }`}>
                               {transaction.description}
                             </p>
+                            {/* Split button for active transactions */}
+                            {!isCompleted && canEdit && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleSplitClick(transaction)}
+                                className="mt-2 h-7 text-xs"
+                              >
+                                <Zap className="mr-1 h-3 w-3" />
+                                Split
+                              </Button>
+                            )}
                             {/* Show split details for completed transactions */}
                             {isCompleted && transaction.splitDetails && transaction.splitDetails.length > 0 && (
                               <div className="mt-2 rounded border border-green-200 bg-green-100/50 p-2 text-xs">
@@ -347,6 +405,107 @@ export function EndJourneyScreen({
               className="flex-1"
             >
               Yes, Done
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Split Dialog */}
+      <Dialog open={splitDialogOpen} onOpenChange={(open) => !open && setSplitDialogOpen(false)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Split Transaction</DialogTitle>
+            <DialogDescription>
+              Set custom amounts for each person. The sum must equal the total.
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedTransaction && (
+            <div className="space-y-3">
+              <div className="rounded-md border p-3 text-sm">
+                <p><strong>Description:</strong> {selectedTransaction.description}</p>
+                <p><strong>Paid by:</strong> {selectedTransaction.payer}</p>
+                <p><strong>Total:</strong> {formatCurrency(selectedTransaction.amount)}</p>
+              </div>
+
+              <div className="space-y-2">
+                <p className="text-sm font-medium">Set split amounts:</p>
+                {(() => {
+                  const beneficiaries = parseBeneficiaries(selectedTransaction.onWhom)
+                  const suggested = suggestEqualSplits(selectedTransaction.amount, beneficiaries.length)
+
+                  const totalSplit = beneficiaries.reduce((sum, _, index) => {
+                    const value = customSplitAmounts[`${selectedTransaction.id}-${index}`]
+                    return sum + (value ? parseFloat(value) || 0 : suggested[index])
+                  }, 0)
+
+                  const isValid = Math.abs(totalSplit - selectedTransaction.amount) < 0.01
+
+                  return (
+                    <>
+                      <div className="space-y-2 rounded border border-green-200 bg-green-50 p-3">
+                        {beneficiaries.map((beneficiary, index) => {
+                          const inputKey = `${selectedTransaction.id}-${index}`
+                          const currentValue = customSplitAmounts[inputKey] ?? suggested[index].toString()
+
+                          return (
+                            <div key={inputKey} className="flex items-center gap-2">
+                              <span className="text-sm font-medium w-24 truncate">{beneficiary}:</span>
+                              <Input
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                value={currentValue}
+                                onChange={(e) => {
+                                  setCustomSplitAmounts((prev) => ({
+                                    ...prev,
+                                    [inputKey]: e.target.value,
+                                  }))
+                                }}
+                                className="h-8 w-24 text-sm"
+                              />
+                              <span className="text-xs text-muted-foreground">Rs</span>
+                            </div>
+                          )
+                        })}
+                      </div>
+
+                      <div className="flex items-center justify-between text-sm">
+                        <span className={isValid ? "text-green-600" : "text-destructive"}>
+                          Sum: {formatCurrency(totalSplit)}
+                        </span>
+                        {!isValid && (
+                          <span className="text-xs text-destructive">
+                            Must equal {formatCurrency(selectedTransaction.amount)}
+                          </span>
+                        )}
+                      </div>
+                    </>
+                  )
+                })()}
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSplitDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              className="bg-green-600 hover:bg-green-700"
+              disabled={(() => {
+                if (!selectedTransaction) return true
+                const beneficiaries = parseBeneficiaries(selectedTransaction.onWhom)
+                const suggested = suggestEqualSplits(selectedTransaction.amount, beneficiaries.length)
+                const totalSplit = beneficiaries.reduce((sum, _, index) => {
+                  const value = customSplitAmounts[`${selectedTransaction.id}-${index}`]
+                  return sum + (value ? parseFloat(value) || 0 : suggested[index])
+                }, 0)
+                return Math.abs(totalSplit - selectedTransaction.amount) >= 0.01
+              })()}
+              onClick={handleSplitDone}
+            >
+              Done
             </Button>
           </DialogFooter>
         </DialogContent>

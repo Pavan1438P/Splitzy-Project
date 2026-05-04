@@ -395,6 +395,8 @@ export default function Home() {
               onContinue={handleContinue}
               onDoneSplitting={handleDoneSplitting}
               canEndJourney={permission === 'creator'}
+              onCompleteTransaction={handleCompleteTransaction}
+              permission={permission}
             />
           )}
           {appState === 'sharedView' && (
@@ -405,6 +407,8 @@ export default function Home() {
               onDoneSplitting={() => {}}
               canEndJourney={false}
               isViewOnly={true}
+              onCompleteTransaction={handleCompleteTransaction}
+              permission={permission}
             />
           )}
         </>
