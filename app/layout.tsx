@@ -19,16 +19,29 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   title: {
-    default: 'GhostSplits - Easy Expense Splitter',
+    default: 'GhostSplits - Ghost Splits Expense Splitter',
     template: '%s | GhostSplits',
   },
-  description: 'Split expenses with friends easily — realtime updates, no login required. Perfect for trips, dinners, and shared costs.',
+  description: 'Split expenses with friends easily — realtime updates, no login required. Perfect for trips, outings, dinners, or any kind of shared costs.',
+  keywords: [
+    'GhostSplits',
+    'ghost splits',
+    'ghostsplit',
+    'ghostsplitter',
+    'expense splitter',
+    'expense split',
+    'split expenses',
+    'shared expenses',
+    'bill splitter',
+    'group expense tracker',
+    'expense sharing app',
+  ],
   metadataBase: new URL(SITE_URL),
   alternates: {
     canonical: '/',
   },
   openGraph: {
-    title: 'GhostSplits - Easy Expense Splitter',
+    title: 'GhostSplits - Ghost Splits Expense Splitter',
     description: 'Split expenses with friends easily — realtime updates, no login required.',
     url: SITE_URL,
     siteName: 'GhostSplits',
@@ -45,7 +58,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary',
-    title: 'GhostSplits - Easy Expense Splitter',
+    title: 'GhostSplits - Ghost Splits Expense Splitter',
     description: 'Split expenses with friends easily — realtime updates, no login required.',
     images: ['/GhostSplits_LOGO.png'],
   },
@@ -71,6 +84,25 @@ export default function RootLayout({
     <html lang="en">
       <head>
         <meta name="google-adsense-account" content="ca-pub-9197617195442082" />
+        <meta
+          name="keywords"
+          content="GhostSplits, ghost splits, ghostsplits, expense splitter, expense split, split expenses, shared expenses, bill splitter, group expense tracker, expense sharing app"
+        />
+        <meta name="application-name" content="GhostSplits" />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'WebSite',
+            name: 'GhostSplits',
+            url: SITE_URL,
+            description: 'GhostSplits is an easy expense splitter for sharing bills, trips, and group costs.',
+            potentialAction: {
+              '@type': 'SearchAction',
+              target: `${SITE_URL}/?q={search_term_string}`,
+              'query-input': 'required name=search_term_string',
+            },
+          }),
+        }} />
         {process.env.NODE_ENV === 'production' && (
           <>
             <Script
