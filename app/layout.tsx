@@ -89,6 +89,8 @@ export default function RootLayout({
           content="GhostSplits, ghost splits, ghostsplits, expense splitter, expense split, split expenses, shared expenses, bill splitter, group expense tracker, expense sharing app"
         />
         <meta name="application-name" content="GhostSplits" />
+        <meta name="theme-color" content="#ffffff" />
+        <link rel="manifest" href="/site.webmanifest" />
         <script type="application/ld+json" dangerouslySetInnerHTML={{
           __html: JSON.stringify({
             '@context': 'https://schema.org',
