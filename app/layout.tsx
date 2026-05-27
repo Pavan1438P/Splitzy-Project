@@ -114,14 +114,14 @@ export default function RootLayout({
               strategy="lazyOnload"
             />
             <Script
-              src="https://www.googletagmanager.com/gtag/js?id=G-1G6ZBNK24E"
+              src="https://www.googletagmanager.com/gtag/js?id=G-6P42MNC7YT"
               strategy="lazyOnload"
             />
             <Script id="gtag-init" strategy="lazyOnload">
               {`window.dataLayer = window.dataLayer || [];
 function gtag(){dataLayer.push(arguments);} 
 gtag('js', new Date());
-gtag('config', 'G-1G6ZBNK24E');`}
+gtag('config', 'G-6P42MNC7YT');`}
             </Script>
           </>
         )}
