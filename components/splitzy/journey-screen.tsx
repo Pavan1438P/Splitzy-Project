@@ -474,14 +474,18 @@ export function JourneyScreen({
                         })}
                       </div>
 
-                      <div className="flex items-center justify-between text-sm">
-                        <span className={isValid ? "text-green-600" : "text-destructive"}>
-                          Sum: {formatCurrency(totalSplit)}
-                        </span>
-                        {!isValid && (
-                          <span className="text-xs text-destructive">
-                            Must equal {formatCurrency(selectedTransaction.amount)}
+                      <div className="space-y-1 border-t border-gray-200 pt-2">
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-muted-foreground">Sum:</span>
+                          <span className={isValid ? "font-semibold text-green-600" : "font-semibold text-destructive"}>
+                            {formatCurrency(totalSplit)}
                           </span>
+                        </div>
+                        {!isValid && (
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="text-destructive">Target:</span>
+                            <span className="text-destructive">{formatCurrency(selectedTransaction.amount)}</span>
+                          </div>
                         )}
                       </div>
                     </>
