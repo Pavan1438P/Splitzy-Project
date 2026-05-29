@@ -84,6 +84,7 @@ export default function RootLayout({
     <html lang="en">
       <head>
         <meta name="google-adsense-account" content="ca-pub-9197617195442082" />
+        <meta name="msvalidate.01" content="F02880CBCE69484F8C7698A3FE3AAC73" />
         <meta
           name="keywords"
           content="GhostSplits, ghost splits, ghostsplits, expense splitter, expense split, split expenses, shared expenses, bill splitter, group expense tracker, expense sharing app"
