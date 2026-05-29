@@ -35,6 +35,14 @@ export const metadata: Metadata = {
     'bill splitter',
     'group expense tracker',
     'expense sharing app',
+    'expense tracker',
+    'split bills',
+    'split costs',
+    'split group expenses',
+    'split trip expenses',
+    'split dinner expenses',
+    'split outings',
+    'online expense splitter',
   ],
   metadataBase: new URL(SITE_URL),
   alternates: {
@@ -87,7 +95,7 @@ export default function RootLayout({
         <meta name="msvalidate.01" content="F02880CBCE69484F8C7698A3FE3AAC73" />
         <meta
           name="keywords"
-          content="GhostSplits, ghost splits, ghostsplits, expense splitter, expense split, split expenses, shared expenses, bill splitter, group expense tracker, expense sharing app"
+          content="GhostSplits, ghost splits, ghostsplits, expense splitter, expense split, split expenses, shared expenses, bill splitter, group expense tracker, expense sharing app, expense tracker, split bills, split costs, split group expenses, split trip expenses, split dinner expenses, split outings, online expense splitter"
         />
         <meta name="application-name" content="GhostSplits" />
         <meta name="theme-color" content="#ffffff" />
