@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import type { Viewport } from 'next'
 import { Geist } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
+import { SpeedInsights } from '@vercel/speed-insights/next'
 import Script from 'next/script'
 import { ErrorBoundary } from '@/components/error-boundary'
 import './globals.css'
@@ -139,7 +140,12 @@ gtag('config', 'G-6P42MNC7YT');`}
         <ErrorBoundary>
           {children}
         </ErrorBoundary>
-        {process.env.NODE_ENV === 'production' && <Analytics />}
+        {process.env.NODE_ENV === 'production' && (
+          <>
+            <Analytics />
+            <SpeedInsights />
+          </>
+        )}
       </body>
     </html>
   )
